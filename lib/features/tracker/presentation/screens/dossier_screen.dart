@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/currency_converter.dart';
+import '../../../../core/utils/currency_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 import '../../../../core/utils/value_metric_evaluator.dart';
 import '../../../sync/presentation/controllers/settings_notifier.dart';
 import '../../domain/models/additional_expense.dart';
 import '../../domain/models/game_entry.dart';
+import '../../domain/models/game_status.dart';
 import '../controllers/vault_notifier.dart';
+import '../widgets/edit_game_modal.dart';
 import '../widgets/playtime_editor_dialog.dart';
 import '../widgets/roi_badge.dart';
 import '../widgets/status_badge.dart';
@@ -29,46 +30,54 @@ class DossierScreen extends ConsumerStatefulWidget {
 }
 
 class _DossierScreenState extends ConsumerState<DossierScreen> {
+  late String _currentGameId;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentGameId = widget.gameId;
+  }
+
   GameEntry? _getGame() {
     final allGames = ref.watch(vaultNotifierProvider).allGames;
-    final index = allGames.indexWhere((g) => g.id == widget.gameId);
+    final index = allGames.indexWhere((g) => g.id == _currentGameId);
     return index != -1 ? allGames[index] : null;
   }
 
   void _showAddExpenseDialog(BuildContext context, GameEntry game) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: LycorisColors.slateCard,
+        backgroundColor: colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: LycorisColors.slateBorder),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
         ),
-        title: const Text('Add Additional Expense / DLC', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: Text(
+          'Add Additional Expense / DLC',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleController,
-              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: 'Title / Description',
                 hintText: 'e.g. Season Pass, Deluxe DLC, Skin',
-                labelStyle: TextStyle(color: LycorisColors.textSecondary),
-                hintStyle: TextStyle(color: LycorisColors.textMuted),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Amount (${game.currency})',
-                labelStyle: const TextStyle(color: LycorisColors.textSecondary),
               ),
             ),
           ],
@@ -76,10 +85,9 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: LycorisColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: LycorisColors.primaryCrimson),
             onPressed: () {
               final title = titleController.text.trim();
               final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
@@ -103,32 +111,34 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
 
   void _showNotesEditor(BuildContext context, GameEntry game) {
     final notesController = TextEditingController(text: game.notes);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: LycorisColors.slateCard,
+        backgroundColor: colorScheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: LycorisColors.slateBorder),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
         ),
-        title: const Text('Edit Notes & Impressions', style: TextStyle(color: Colors.white, fontSize: 16)),
+        title: Text(
+          'Edit Notes & Impressions',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         content: TextField(
           controller: notesController,
           maxLines: 6,
-          style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
             hintText: 'Write your thoughts, completion milestones, or review...',
-            hintStyle: TextStyle(color: LycorisColors.textMuted),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: LycorisColors.textSecondary)),
+            child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: LycorisColors.primaryCrimson),
             onPressed: () {
               ref.read(vaultNotifierProvider.notifier).updateNotes(game.id, notesController.text.trim());
               Navigator.pop(ctx);
@@ -140,6 +150,134 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
+  void _showStatusPicker(BuildContext context, GameEntry game) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text(
+                    'Change Status',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                ...GameStatus.values.map((status) {
+                  final isCurrent = status == game.status;
+                  return ListTile(
+                    leading: Icon(
+                      status.icon,
+                      color: isCurrent ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    ),
+                    title: Text(
+                      status.displayName,
+                      style: TextStyle(
+                        fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w500,
+                        color: isCurrent ? colorScheme.primary : colorScheme.onSurface,
+                      ),
+                    ),
+                    trailing: isCurrent ? Icon(Icons.check_rounded, color: colorScheme.primary) : null,
+                    onTap: () {
+                      ref.read(vaultNotifierProvider.notifier).updateStatus(game.id, status);
+                      Navigator.pop(ctx);
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRatingDialog(BuildContext context, GameEntry game) {
+    double currentRating = game.personalRating;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: colorScheme.surfaceContainerHigh,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
+            ),
+            title: Text(
+              'Personal Rating',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      currentRating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: colorScheme.secondary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      currentRating > 0 ? currentRating.toStringAsFixed(1) : 'Unrated',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: colorScheme.secondary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Slider(
+                  value: currentRating,
+                  min: 0.0,
+                  max: 10.0,
+                  divisions: 20,
+                  activeColor: colorScheme.primary,
+                  onChanged: (val) {
+                    setDialogState(() => currentRating = val);
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  ref.read(vaultNotifierProvider.notifier).updateRating(game.id, currentRating);
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Save Score'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final game = _getGame();
@@ -147,27 +285,28 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
       return Scaffold(
         appBar: AppBar(),
         body: const Center(
-          child: Text('Game entry not found.', style: TextStyle(color: LycorisColors.textSecondary)),
+          child: Text('Game entry not found.'),
         ),
       );
     }
 
     final primaryCurrency = ref.watch(settingsNotifierProvider).primaryCurrency;
+    final exchangeRates = ref.watch(exchangeRatesNotifierProvider);
     final metric = ValueMetricEvaluator.evaluate(
       totalSpent: game.totalSpent,
       totalMinutes: game.totalMinutesPlayed,
       currency: game.currency,
     );
 
-    // Primary currency normalized conversion
-    final convertedTotal = CurrencyConverter.convert(
+    // Primary currency normalized conversion using live exchange rates
+    final convertedTotal = CurrencyHelper.convert(
       amount: game.totalSpent,
       fromCurrency: game.currency,
       toCurrency: primaryCurrency,
+      rates: exchangeRates,
     );
 
     final colorScheme = Theme.of(context).colorScheme;
-    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       body: CustomScrollView(
@@ -182,25 +321,46 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
+              // Edit Game Details Button
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: LycorisColors.error),
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                tooltip: 'Edit Game Details',
+                onPressed: () async {
+                  final newId = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) => EditGameModal(
+                      game: game,
+                      onGameUpdated: (id) {
+                        setState(() => _currentGameId = id);
+                      },
+                    ),
+                  );
+                  if (newId != null && mounted) {
+                    setState(() => _currentGameId = newId);
+                  }
+                },
+              ),
+
+              // Delete Game Button
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                tooltip: 'Remove Game',
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: LycorisColors.slateCard,
-                      title: const Text('Remove Game?', style: TextStyle(color: Colors.white)),
+                      backgroundColor: colorScheme.surfaceContainerHigh,
+                      title: const Text('Remove Game?'),
                       content: Text(
                         'Are you sure you want to remove "${game.title}" (${game.storefront.label})?',
-                        style: const TextStyle(color: LycorisColors.textSecondary),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel', style: TextStyle(color: LycorisColors.textSecondary)),
+                          child: const Text('Cancel'),
                         ),
                         FilledButton(
-                          style: FilledButton.styleFrom(backgroundColor: LycorisColors.error),
+                          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
                           onPressed: () => Navigator.pop(ctx, true),
                           child: const Text('Delete'),
                         ),
@@ -226,7 +386,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                       fit: BoxFit.cover,
                     )
                   else
-                    Container(color: game.storefront.brandColor.withAlpha(60)),
+                    Container(color: colorScheme.surfaceContainerHighest),
 
                   // Dark Vignette Gradients
                   Container(
@@ -236,14 +396,16 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.black.withAlpha(160),
+                          Colors.black.withAlpha(100),
                           Colors.black.withAlpha(220),
-                          scaffoldBg,
+                          colorScheme.surface,
                         ],
+                        stops: const [0.0, 0.4, 0.75, 1.0],
                       ),
                     ),
                   ),
 
-                  // Foreground Hero Details
+                  // Game Header Metadata
                   Positioned(
                     bottom: 20,
                     left: 20,
@@ -251,24 +413,22 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        // Floating 3:4 Box Art
-                        Container(
-                          width: 110,
-                          height: 146,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: LycorisColors.slateBorder, width: 1.5),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withAlpha(180), blurRadius: 16, offset: const Offset(0, 8)),
-                            ],
+                        // Cover Card
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: 80,
+                            height: 110,
+                            child: game.coverUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: game.coverUrl!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    color: colorScheme.surfaceContainerHigh,
+                                    child: Icon(game.storefront.fallbackIcon, size: 36, color: colorScheme.onSurfaceVariant),
+                                  ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: game.coverUrl != null
-                              ? CachedNetworkImage(imageUrl: game.coverUrl!, fit: BoxFit.cover)
-                              : Container(
-                                  color: LycorisColors.slateDark,
-                                  child: Icon(game.storefront.fallbackIcon, size: 40, color: Colors.white24),
-                                ),
                         ),
                         const SizedBox(width: 16),
 
@@ -284,8 +444,8 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -294,7 +454,12 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                                 runSpacing: 6,
                                 children: [
                                   StorefrontBadge(storefront: game.storefront),
-                                  StatusBadge(status: game.status),
+                                  // Interactive Status Badge
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(6),
+                                    onTap: () => _showStatusPicker(context, game),
+                                    child: StatusBadge(status: game.status),
+                                  ),
                                 ],
                               ),
                             ],
@@ -311,25 +476,25 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           // Body Content
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // 1. Financial & ROI Bento Grid
-                  _buildFinancialRoiCard(game, metric, primaryCurrency, convertedTotal),
-                  const SizedBox(height: 20),
+                  _buildFinancialRoiCard(context, game, metric, primaryCurrency, convertedTotal),
+                  const SizedBox(height: 16),
 
                   // 2. Playtime & Progression
-                  _buildPlaytimeCard(game),
-                  const SizedBox(height: 20),
+                  _buildPlaytimeCard(context, game),
+                  const SizedBox(height: 16),
 
                   // 3. Itemized Expenses / DLC Table
-                  _buildExpensesCard(game),
-                  const SizedBox(height: 20),
+                  _buildExpensesCard(context, game),
+                  const SizedBox(height: 16),
 
                   // 4. Personal Rating & Journal Notes
-                  _buildJournalCard(game),
-                  const SizedBox(height: 30),
+                  _buildJournalCard(context, game),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -340,17 +505,21 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
   }
 
   Widget _buildFinancialRoiCard(
+    BuildContext context,
     GameEntry game,
     ValueMetric metric,
     String primaryCurrency,
     double convertedTotal,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LycorisColors.slateCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LycorisColors.slateBorder),
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,39 +527,41 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'INVESTMENT & RETURN (ROI)',
-                style: TextStyle(
-                  color: LycorisColors.textSecondary,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0.8,
                 ),
               ),
               RoiBadge(metric: metric),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: _buildMetricTile(
+                  context,
                   'Base Price',
-                  '${game.currency} ${game.basePrice.toStringAsFixed(2)}',
+                  CurrencyHelper.format(game.basePrice, currencyCode: game.currency),
                   Icons.receipt_long,
                 ),
               ),
               Expanded(
                 child: _buildMetricTile(
+                  context,
                   'DLC / Extras',
-                  '${game.currency} ${(game.totalSpent - game.basePrice).toStringAsFixed(2)}',
+                  CurrencyHelper.format(game.totalSpent - game.basePrice, currencyCode: game.currency),
                   Icons.extension_outlined,
                 ),
               ),
               Expanded(
                 child: _buildMetricTile(
+                  context,
                   'Total Spent',
-                  '${game.currency} ${game.totalSpent.toStringAsFixed(2)}',
+                  CurrencyHelper.format(game.totalSpent, currencyCode: game.currency),
                   Icons.account_balance_wallet_outlined,
                   highlight: true,
                 ),
@@ -400,14 +571,34 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           if (game.currency != primaryCurrency) ...[
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: LycorisColors.slateDark,
-                borderRadius: BorderRadius.circular(6),
+                color: colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
               ),
-              child: Text(
-                '≈ ${CurrencyConverter.symbolFor(primaryCurrency)}${convertedTotal.toStringAsFixed(2)} in Primary Currency ($primaryCurrency)',
-                style: const TextStyle(color: LycorisColors.textMuted, fontSize: 11),
+              child: Row(
+                children: [
+                  CurrencySymbolBox(
+                    currencyCode: primaryCurrency,
+                    size: 22,
+                    baseFontSize: 11,
+                    borderRadius: BorderRadius.circular(6),
+                    backgroundColor: colorScheme.primary,
+                    textColor: colorScheme.onPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '≈ ${CurrencyHelper.format(convertedTotal, currencyCode: primaryCurrency)} in Primary Currency ($primaryCurrency)',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -416,23 +607,28 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  Widget _buildMetricTile(String label, String value, IconData icon, {bool highlight = false}) {
+  Widget _buildMetricTile(BuildContext context, String label, String value, IconData icon, {bool highlight = false}) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: LycorisColors.textMuted),
+            Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(color: LycorisColors.textSecondary, fontSize: 11)),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+            ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            color: highlight ? LycorisColors.crimsonGlow : Colors.white,
-            fontSize: 15,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: highlight ? colorScheme.primary : colorScheme.onSurface,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -440,13 +636,16 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  Widget _buildPlaytimeCard(GameEntry game) {
+  Widget _buildPlaytimeCard(BuildContext context, GameEntry game) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LycorisColors.slateCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LycorisColors.slateBorder),
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -454,37 +653,34 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'TOTAL PLAYTIME',
-                style: TextStyle(
-                  color: LycorisColors.textSecondary,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0.8,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 TimeNormalizer.format(game.totalMinutesPlayed),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: colorScheme.onSurface,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 '${game.totalMinutesPlayed} canonical minutes logged',
-                style: const TextStyle(color: LycorisColors.textMuted, fontSize: 11),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withAlpha(180),
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
           FilledButton.icon(
             icon: const Icon(Icons.timer_outlined, size: 16),
             label: const Text('Log Time'),
-            style: FilledButton.styleFrom(
-              backgroundColor: LycorisColors.primaryCrimson,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
             onPressed: () {
               showDialog(
                 context: context,
@@ -503,13 +699,16 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  Widget _buildExpensesCard(GameEntry game) {
+  Widget _buildExpensesCard(BuildContext context, GameEntry game) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LycorisColors.slateCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LycorisColors.slateBorder),
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,29 +716,28 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'DLC & EXPENSES ITEMIZATION',
-                style: TextStyle(
-                  color: LycorisColors.textSecondary,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0.8,
                 ),
               ),
               TextButton.icon(
-                icon: const Icon(Icons.add, size: 16, color: LycorisColors.crimsonGlow),
-                label: const Text('Add DLC', style: TextStyle(color: LycorisColors.crimsonGlow, fontSize: 12)),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add DLC', style: TextStyle(fontSize: 12)),
                 onPressed: () => _showAddExpenseDialog(context, game),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (game.additionalExpenses.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No additional DLC, battle passes, or microtransactions recorded.',
-                style: TextStyle(color: LycorisColors.textMuted, fontSize: 12),
+                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
             )
           else
@@ -547,7 +745,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: game.additionalExpenses.length,
-              separatorBuilder: (_, _) => const Divider(color: LycorisColors.slateDivider, height: 12),
+              separatorBuilder: (_, _) => Divider(color: colorScheme.outlineVariant.withAlpha(30), height: 12),
               itemBuilder: (context, index) {
                 final expense = game.additionalExpenses[index];
                 return Row(
@@ -557,17 +755,33 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(expense.title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                          Text(DateFormat.yMMMd().format(expense.date), style: const TextStyle(color: LycorisColors.textMuted, fontSize: 10.5)),
+                          Text(
+                            expense.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            DateFormat.yMMMd().format(expense.date),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 10.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     Text(
-                      '${game.currency} ${expense.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(color: LycorisColors.crimsonLight, fontSize: 13, fontWeight: FontWeight.w700),
+                      CurrencyHelper.format(expense.amount, currencyCode: game.currency),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.secondary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 16, color: LycorisColors.textMuted),
+                      icon: const Icon(Icons.close, size: 16),
+                      color: colorScheme.onSurfaceVariant,
                       onPressed: () {
                         ref.read(vaultNotifierProvider.notifier).removeExpense(game.id, expense.id);
                       },
@@ -581,13 +795,16 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  Widget _buildJournalCard(GameEntry game) {
+  Widget _buildJournalCard(BuildContext context, GameEntry game) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: LycorisColors.slateCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: LycorisColors.slateBorder),
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,38 +812,52 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'RATING & JOURNAL',
-                style: TextStyle(
-                  color: LycorisColors.textSecondary,
-                  fontSize: 11,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
+                  letterSpacing: 0.8,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.edit, size: 16, color: LycorisColors.crimsonGlow),
+                icon: const Icon(Icons.edit, size: 16),
+                color: colorScheme.primary,
                 onPressed: () => _showNotesEditor(context, game),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 22),
-              const SizedBox(width: 6),
-              Text(
-                game.personalRating > 0 ? '${game.personalRating.toStringAsFixed(1)} / 10.0' : 'Unrated',
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+          // Interactive Rating Row
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _showRatingDialog(context, game),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    game.personalRating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: colorScheme.secondary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    game.personalRating > 0 ? '${game.personalRating.toStringAsFixed(1)} / 10.0' : 'Tap to rate (Unrated)',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             game.notes.isNotEmpty ? game.notes : 'No personal notes or impressions written yet. Tap edit to journal.',
-            style: TextStyle(
-              color: game.notes.isNotEmpty ? LycorisColors.textPrimary : LycorisColors.textMuted,
-              fontSize: 13,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: game.notes.isNotEmpty ? colorScheme.onSurface : colorScheme.onSurfaceVariant.withAlpha(160),
               height: 1.5,
             ),
           ),

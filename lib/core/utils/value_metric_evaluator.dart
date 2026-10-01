@@ -8,18 +8,31 @@ enum ValueTier {
   fairValue,
   costly;
 
+  Color themeColor(ColorScheme colorScheme) {
+    switch (this) {
+      case ValueTier.free:
+      case ValueTier.greatValue:
+        return colorScheme.primary;
+      case ValueTier.fairValue:
+        return colorScheme.secondary;
+      case ValueTier.unplayed:
+      case ValueTier.costly:
+        return colorScheme.onSurfaceVariant;
+    }
+  }
+
   Color get color {
     switch (this) {
       case ValueTier.free:
-        return LycorisColors.tierFree;
+        return LycorisColors.primaryCrimson;
       case ValueTier.unplayed:
         return LycorisColors.tierUnplayed;
       case ValueTier.greatValue:
-        return LycorisColors.tierGreatValue;
+        return LycorisColors.primaryCrimson;
       case ValueTier.fairValue:
-        return LycorisColors.tierFairValue;
+        return LycorisColors.crimsonLight;
       case ValueTier.costly:
-        return LycorisColors.tierCostly;
+        return LycorisColors.textSecondary;
     }
   }
 
@@ -60,14 +73,46 @@ class ValueMetricEvaluator {
     required int totalMinutes,
     required String currency,
   }) {
-    // 1. Zero or negative cost
+    final hours = totalMinutes / 60.0;
+
+    // 1. Zero or negative cost (Free / Gifted / Claimed Games)
     if (totalSpent <= 0.0) {
-      return const ValueMetric(
-        label: 'Free / Gift',
-        secondaryText: 'Zero spend recorded',
-        tier: ValueTier.free,
-        costPerHour: 0.0,
-      );
+      if (totalMinutes <= 0) {
+        return const ValueMetric(
+          label: 'Free • Unplayed',
+          secondaryText: 'Zero spend recorded',
+          tier: ValueTier.unplayed,
+          costPerHour: 0.0,
+        );
+      } else if (hours < 3.0) {
+        return ValueMetric(
+          label: '${hours.toStringAsFixed(1)}h • Tried',
+          secondaryText: 'Early impressions',
+          tier: ValueTier.fairValue,
+          costPerHour: 0.0,
+        );
+      } else if (hours < 10.0) {
+        return ValueMetric(
+          label: '${hours.toStringAsFixed(1)}h • Good Return',
+          secondaryText: 'Solid engagement',
+          tier: ValueTier.greatValue,
+          costPerHour: 0.0,
+        );
+      } else if (hours < 30.0) {
+        return ValueMetric(
+          label: '${hours.toStringAsFixed(1)}h • High Value',
+          secondaryText: 'Deep immersion',
+          tier: ValueTier.greatValue,
+          costPerHour: 0.0,
+        );
+      } else {
+        return ValueMetric(
+          label: '${hours.toStringAsFixed(1)}h • Legendary Yield',
+          secondaryText: 'Phenomenal free ROI',
+          tier: ValueTier.greatValue,
+          costPerHour: 0.0,
+        );
+      }
     }
 
     // 2. Purchased but unplayed
@@ -80,8 +125,7 @@ class ValueMetricEvaluator {
       );
     }
 
-    // 3. Active playtime calculations
-    final hours = totalMinutes / 60.0;
+    // 3. Active playtime calculations for paid titles
     final costPerHour = totalSpent / hours;
     final formatted = '$currency ${costPerHour.toStringAsFixed(2)}/hr';
 

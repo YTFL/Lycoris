@@ -2,8 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/currency_converter.dart';
+import '../../../../core/utils/currency_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 import '../../../search/data/igdb_service.dart';
 import '../../../search/presentation/manual_game_modal.dart';
@@ -12,7 +11,15 @@ import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
 import '../controllers/vault_notifier.dart';
-import 'playtime_editor_dialog.dart';
+
+enum PlayTimeInputMode {
+  hoursAndMinutes('Hours & Mins'),
+  decimalHours('Decimal Hours'),
+  pureMinutes('Total Minutes');
+
+  final String label;
+  const PlayTimeInputMode(this.label);
+}
 
 class IntakeModal extends ConsumerStatefulWidget {
   const IntakeModal({super.key});
@@ -25,35 +32,32 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
   final _searchController = TextEditingController();
   Timer? _debounceTimer;
 
-  List<IGDBSearchResult> _searchResults = [];
   bool _isSearching = false;
+  List<IGDBSearchResult> _searchResults = [];
   IGDBSearchResult? _selectedGame;
 
   // Form Fields
   Storefront _selectedStorefront = Storefront.steam;
-  GameStatus _selectedStatus = GameStatus.playing;
-  String _selectedCurrency = 'USD';
+  GameStatus _selectedStatus = GameStatus.backlog;
+  String _selectedCurrency = '';
   final _priceController = TextEditingController(text: '0.00');
   bool _isFree = false;
 
+  // Playtime Modes
   PlayTimeInputMode _timeMode = PlayTimeInputMode.hoursAndMinutes;
   final _hoursController = TextEditingController(text: '0');
   final _minutesController = TextEditingController(text: '0');
-  final _decimalHoursController = TextEditingController();
-  final _pureMinutesController = TextEditingController();
+  final _decimalHoursController = TextEditingController(text: '0.0');
+  final _pureMinutesController = TextEditingController(text: '0');
 
+  // Rating & Notes
   double _rating = 0.0;
   final _notesController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
-    _searchController.dispose();
     _debounceTimer?.cancel();
+    _searchController.dispose();
     _priceController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
@@ -65,23 +69,31 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
 
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
-      if (query.trim().isNotEmpty) {
-        _performSearch(query.trim());
-      }
-    });
-  }
-
-  Future<void> _performSearch(String query) async {
-    setState(() => _isSearching = true);
-    final igdbService = ref.read(igdbServiceProvider);
-    final results = await igdbService.searchGames(query);
-    if (mounted) {
+    if (query.trim().isEmpty) {
       setState(() {
-        _searchResults = results;
+        _searchResults = [];
         _isSearching = false;
       });
+      return;
     }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
+      setState(() => _isSearching = true);
+      try {
+        final igdbService = ref.read(igdbServiceProvider);
+        final results = await igdbService.searchGames(query.trim());
+        if (mounted) {
+          setState(() {
+            _searchResults = results;
+            _isSearching = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSearching = false);
+        }
+      }
+    });
   }
 
   int get _calculatedMinutes {
@@ -91,8 +103,8 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
         final m = int.tryParse(_minutesController.text.trim()) ?? 0;
         return TimeNormalizer.fromHoursAndMinutes(h, m);
       case PlayTimeInputMode.decimalHours:
-        final dec = double.tryParse(_decimalHoursController.text.trim()) ?? 0.0;
-        return TimeNormalizer.fromDecimalHours(dec);
+        final d = double.tryParse(_decimalHoursController.text.trim()) ?? 0.0;
+        return TimeNormalizer.fromDecimalHours(d);
       case PlayTimeInputMode.pureMinutes:
         final raw = int.tryParse(_pureMinutesController.text.trim()) ?? 0;
         return TimeNormalizer.fromRawMinutes(raw);
@@ -103,13 +115,12 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
     if (_selectedGame == null) return;
 
     final price = _isFree ? 0.0 : (double.tryParse(_priceController.text.trim()) ?? 0.0);
-    final compositeId = GameEntry.generateId(
-      igdbId: _selectedGame!.id,
-      storefront: _selectedStorefront,
-    );
 
     final entry = GameEntry(
-      id: compositeId,
+      id: GameEntry.generateId(
+        igdbId: _selectedGame!.id,
+        storefront: _selectedStorefront,
+      ),
       igdbId: _selectedGame!.id,
       title: _selectedGame!.title,
       coverUrl: _selectedGame!.coverBigUrl,
@@ -128,26 +139,29 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
     ref.read(vaultNotifierProvider.notifier).saveGame(entry);
     Navigator.pop(context);
 
+    final colorScheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Added "${entry.title}" (${entry.storefront.label}) to Library!'),
-        backgroundColor: LycorisColors.primaryCrimson,
+        backgroundColor: colorScheme.primary,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final defaultCurrency = ref.watch(settingsNotifierProvider).primaryCurrency;
     if (_selectedCurrency.isEmpty) {
       _selectedCurrency = defaultCurrency;
     }
 
     return Dialog(
-      backgroundColor: LycorisColors.slateCard,
+      backgroundColor: colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: LycorisColors.slateBorder),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680, maxHeight: 780),
@@ -160,6 +174,9 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
   }
 
   Widget _buildSearchStage() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -167,16 +184,15 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Add Game',
-              style: TextStyle(
-                color: LycorisColors.textPrimary,
-                fontSize: 18,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface,
                 fontWeight: FontWeight.w800,
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: LycorisColors.textMuted),
+              icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
               onPressed: () => Navigator.pop(context),
             ),
           ],
@@ -186,21 +202,23 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
         // Search Input
         TextField(
           controller: _searchController,
-          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search IGDB for title (e.g. Elden Ring, Hades)...',
-            hintStyle: const TextStyle(color: LycorisColors.textMuted, fontSize: 13),
-            prefixIcon: const Icon(Icons.search, color: LycorisColors.primaryCrimson),
+            prefixIcon: Icon(Icons.search, color: colorScheme.primary),
             filled: true,
-            fillColor: LycorisColors.slateDark,
+            fillColor: colorScheme.surfaceContainer,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: LycorisColors.slateBorder),
+              borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: LycorisColors.primaryCrimson),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),
           onChanged: _onSearchChanged,
@@ -211,16 +229,17 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            icon: const Icon(Icons.edit_note, size: 16, color: LycorisColors.crimsonGlow),
-            label: const Text(
+            icon: Icon(Icons.edit_note, size: 16, color: colorScheme.primary),
+            label: Text(
               "Can't find it? Add manually",
-              style: TextStyle(color: LycorisColors.crimsonGlow, fontSize: 12),
+              style: TextStyle(color: colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w600),
             ),
             onPressed: () {
               Navigator.pop(context);
               showDialog(
                 context: context,
                 builder: (ctx) => ManualGameModal(
+                  defaultCurrency: _selectedCurrency,
                   onSave: (game) {
                     ref.read(vaultNotifierProvider.notifier).saveGame(game);
                   },
@@ -230,14 +249,14 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
           ),
         ),
 
-        const Divider(color: LycorisColors.slateDivider, height: 16),
+        Divider(color: colorScheme.outlineVariant.withAlpha(40), height: 16),
 
         // Results List
         Expanded(
           child: _isSearching
-              ? const Center(
+              ? Center(
                   child: CircularProgressIndicator(
-                    color: LycorisColors.primaryCrimson,
+                    color: colorScheme.primary,
                   ),
                 )
               : _searchResults.isEmpty
@@ -245,20 +264,25 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_rounded, size: 48, color: Colors.white.withAlpha(50)),
+                          Icon(Icons.search_rounded, size: 48, color: colorScheme.onSurfaceVariant.withAlpha(80)),
                           const SizedBox(height: 12),
                           Text(
                             _searchController.text.isEmpty
                                 ? 'Type a title above to search the IGDB database'
                                 : 'No matching titles found on IGDB',
-                            style: const TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             _searchController.text.isEmpty
                                 ? 'Or tap "Add manually" to add non-IGDB games'
                                 : 'You can add this title as a custom entry',
-                            style: const TextStyle(color: LycorisColors.textMuted, fontSize: 11.5),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant.withAlpha(160),
+                            ),
                           ),
                         ],
                       ),
@@ -277,19 +301,22 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
   }
 
   Widget _buildSearchResultTile(IGDBSearchResult item) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: () {
         setState(() {
           _selectedGame = item;
         });
       },
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: LycorisColors.slateDark,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: LycorisColors.slateBorder),
+          color: colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
         ),
         child: Row(
           children: [
@@ -303,9 +330,9 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                     ? CachedNetworkImage(
                         imageUrl: item.coverBigUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => Container(color: LycorisColors.slateCard),
+                        errorWidget: (_, _, _) => Container(color: colorScheme.surfaceContainerHigh),
                       )
-                    : Container(color: LycorisColors.slateCard),
+                    : Container(color: colorScheme.surfaceContainerHigh),
               ),
             ),
             const SizedBox(width: 12),
@@ -319,9 +346,8 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                     item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -330,16 +356,15 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                     item.genres.join(' • '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: LycorisColors.textSecondary,
-                      fontSize: 11,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
 
-            const Icon(Icons.chevron_right, color: LycorisColors.textMuted),
+            Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -347,6 +372,8 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
   }
 
   Widget _buildIntakeForm() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final gameRepo = ref.read(gameRepositoryProvider);
     final existingEditions = gameRepo.findExisting(
       title: _selectedGame!.title,
@@ -360,7 +387,7 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
               onPressed: () => setState(() => _selectedGame = null),
             ),
             const SizedBox(width: 4),
@@ -370,9 +397,8 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 children: [
                   Text(
                     'ADD TO LIBRARY',
-                    style: const TextStyle(
-                      color: LycorisColors.primaryCrimson,
-                      fontSize: 11,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.primary,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.2,
                     ),
@@ -381,9 +407,8 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                     _selectedGame!.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -399,20 +424,19 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: LycorisColors.warning.withAlpha(30),
+              color: colorScheme.secondaryContainer.withAlpha(100),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: LycorisColors.warning.withAlpha(150)),
+              border: Border.all(color: colorScheme.secondary.withAlpha(120)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: LycorisColors.warning, size: 18),
+                Icon(Icons.info_outline, color: colorScheme.secondary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Already in Library on: ${existingEditions.map((e) => e.storefront.label).join(", ")}. Adding another storefront purchase?',
-                    style: const TextStyle(
-                      color: LycorisColors.warning,
-                      fontSize: 11.5,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -428,9 +452,12 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
           child: ListView(
             children: [
               // Storefront
-              const Text(
+              Text(
                 'Storefront / Platform',
-                style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               Wrap(
@@ -439,15 +466,9 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 children: Storefront.values.map((s) {
                   final isSelected = _selectedStorefront == s;
                   return ChoiceChip(
+                    avatar: Icon(s.fallbackIcon, size: 14),
                     label: Text(s.label),
                     selected: isSelected,
-                    selectedColor: s.brandColor,
-                    backgroundColor: LycorisColors.slateDark,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : LycorisColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
                     onSelected: (_) => setState(() => _selectedStorefront = s),
                   );
                 }).toList(),
@@ -455,9 +476,12 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
               const SizedBox(height: 16),
 
               // Play Status
-              const Text(
+              Text(
                 'Play Status',
-                style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               Wrap(
@@ -466,14 +490,9 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 children: GameStatus.values.map((st) {
                   final isSelected = _selectedStatus == st;
                   return ChoiceChip(
+                    avatar: Icon(st.icon, size: 14),
                     label: Text(st.displayName),
                     selected: isSelected,
-                    selectedColor: st.color.withAlpha(200),
-                    backgroundColor: LycorisColors.slateDark,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : LycorisColors.textSecondary,
-                      fontSize: 12,
-                    ),
                     onSelected: (_) => setState(() => _selectedStatus = st),
                   );
                 }).toList(),
@@ -487,11 +506,13 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                     flex: 2,
                     child: DropdownButtonFormField<String>(
                       initialValue: _selectedCurrency,
-                      dropdownColor: LycorisColors.slateDark,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      dropdownColor: colorScheme.surfaceContainerHigh,
                       decoration: _inputDecoration('Currency'),
-                      items: CurrencyConverter.supportedCurrencies.map((c) {
-                        return DropdownMenuItem(value: c, child: Text('$c (${CurrencyConverter.symbolFor(c)})'));
+                      items: CurrencyHelper.supportedCurrencies.map((c) {
+                        return DropdownMenuItem(
+                          value: c.code,
+                          child: Text('${c.code} (${c.symbol})'),
+                        );
                       }).toList(),
                       onChanged: (val) {
                         if (val != null) setState(() => _selectedCurrency = val);
@@ -505,7 +526,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                       controller: _priceController,
                       enabled: !_isFree,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
                       decoration: _inputDecoration('Base Price'),
                     ),
                   ),
@@ -513,17 +533,20 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13)),
+                title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(fontSize: 13)),
                 value: _isFree,
-                activeTrackColor: LycorisColors.primaryCrimson,
+                activeThumbColor: colorScheme.primary,
                 onChanged: (val) => setState(() => _isFree = val),
               ),
               const SizedBox(height: 14),
 
               // Time Tracking Mode Tabs
-              const Text(
+              Text(
                 'Playtime Input Mode',
-                style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               SegmentedButton<PlayTimeInputMode>(
@@ -532,13 +555,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 }).toList(),
                 selected: {_timeMode},
                 onSelectionChanged: (set) => setState(() => _timeMode = set.first),
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) return LycorisColors.primaryCrimson;
-                    return LycorisColors.slateDark;
-                  }),
-                  foregroundColor: const WidgetStatePropertyAll(Colors.white),
-                ),
               ),
               const SizedBox(height: 10),
 
@@ -550,7 +566,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                       child: TextField(
                         controller: _hoursController,
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Hours', suffix: 'h'),
                         onChanged: (_) => setState(() {}),
                       ),
@@ -560,7 +575,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                       child: TextField(
                         controller: _minutesController,
                         keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
                         decoration: _inputDecoration('Minutes', suffix: 'm'),
                         onChanged: (_) => setState(() {}),
                       ),
@@ -571,7 +585,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 TextField(
                   controller: _decimalHoursController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white),
                   decoration: _inputDecoration('Decimal Hours (e.g. 18.75)', suffix: 'hrs'),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -579,7 +592,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 TextField(
                   controller: _pureMinutesController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
                   decoration: _inputDecoration('Total Minutes (e.g. 1125)', suffix: 'mins'),
                   onChanged: (_) => setState(() {}),
                 ),
@@ -591,17 +603,20 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: LycorisColors.slateDark,
+                  color: colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: LycorisColors.slateBorder),
+                  border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Normalized Playtime:', style: TextStyle(color: LycorisColors.textSecondary, fontSize: 12)),
+                    Text('Normalized Playtime:', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
                     Text(
                       '${TimeNormalizer.format(_calculatedMinutes)} ($_calculatedMinutes normalized minutes)',
-                      style: const TextStyle(color: LycorisColors.crimsonGlow, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -610,17 +625,29 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
               const SizedBox(height: 16),
 
               // Rating Slider
-              Text(
-                'Personal Rating: ${_rating.toStringAsFixed(1)} / 10.0',
-                style: const TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w700),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Personal Rating: ${_rating > 0 ? _rating.toStringAsFixed(1) : "Unrated"}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Icon(
+                    _rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: colorScheme.secondary,
+                    size: 18,
+                  ),
+                ],
               ),
               Slider(
                 value: _rating,
                 min: 0.0,
                 max: 10.0,
                 divisions: 20,
-                activeColor: LycorisColors.primaryCrimson,
-                inactiveColor: LycorisColors.slateBorder,
+                activeColor: colorScheme.primary,
                 label: _rating.toStringAsFixed(1),
                 onChanged: (val) => setState(() => _rating = val),
               ),
@@ -631,7 +658,6 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
               TextField(
                 controller: _notesController,
                 maxLines: 2,
-                style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration('Notes / Impressions log'),
               ),
             ],
@@ -646,17 +672,12 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
           children: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: LycorisColors.textSecondary)),
+              child: const Text('Cancel'),
             ),
             const SizedBox(width: 10),
             FilledButton.icon(
               icon: const Icon(Icons.bookmark_add, size: 18),
               label: const Text('Save Game'),
-              style: FilledButton.styleFrom(
-                backgroundColor: LycorisColors.primaryCrimson,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
               onPressed: _saveEntry,
             ),
           ],
@@ -666,21 +687,25 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
   }
 
   InputDecoration _inputDecoration(String label, {String? suffix}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return InputDecoration(
       labelText: label,
       suffixText: suffix,
-      labelStyle: const TextStyle(color: LycorisColors.textSecondary, fontSize: 13),
-      suffixStyle: const TextStyle(color: LycorisColors.textMuted),
       filled: true,
-      fillColor: LycorisColors.slateDark,
+      fillColor: colorScheme.surfaceContainer,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: LycorisColors.slateBorder),
+        borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: LycorisColors.primaryCrimson),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
     );
   }

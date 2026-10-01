@@ -1,8 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/currency_converter.dart';
+import '../../../../core/utils/currency_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 import '../../../../core/utils/value_metric_evaluator.dart';
 import '../../../sync/presentation/controllers/settings_notifier.dart';
@@ -22,11 +21,20 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
   int _touchedSectionIndex = -1;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(exchangeRatesNotifierProvider.notifier).checkAndAutoFetch();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final games = ref.watch(vaultNotifierProvider).allGames;
     final primaryCurrency = ref.watch(settingsNotifierProvider).primaryCurrency;
+    final exchangeRates = ref.watch(exchangeRatesNotifierProvider);
 
     // Aggregations converted into primary display currency
     double totalInvested = 0.0;
@@ -35,15 +43,16 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
     double playedSpend = 0.0;
     double backlogInvested = 0.0;
 
-    final storefrontSpendMap = <Storefront, double>{};
+    final storefrontCountMap = <Storefront, int>{};
     final statusCountMap = <GameStatus, int>{};
     final tierCountMap = <ValueTier, int>{};
 
     for (final game in games) {
-      final convertedSpend = CurrencyConverter.convert(
+      final convertedSpend = CurrencyHelper.convert(
         amount: game.totalSpent,
         fromCurrency: game.currency,
         toCurrency: primaryCurrency,
+        rates: exchangeRates,
       );
 
       totalInvested += convertedSpend;
@@ -58,9 +67,8 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
         backlogInvested += convertedSpend;
       }
 
-      // Storefront spend
-      storefrontSpendMap[game.storefront] =
-          (storefrontSpendMap[game.storefront] ?? 0.0) + convertedSpend;
+      // Storefront games owned count
+      storefrontCountMap[game.storefront] = (storefrontCountMap[game.storefront] ?? 0) + 1;
 
       // Status count
       statusCountMap[game.status] = (statusCountMap[game.status] ?? 0) + 1;
@@ -77,9 +85,19 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
     final totalHours = totalMinutes / 60.0;
     final avgCostPerHour = playedMinutes > 0 ? (playedSpend / (playedMinutes / 60.0)) : 0.0;
 
-    // Leaderboards
+    // Leaderboards normalized to primary currency
+    double normalizedCostPerHour(GameEntry g) {
+      if (g.costPerHour == null) return 999999.0;
+      return CurrencyHelper.convert(
+        amount: g.costPerHour!,
+        fromCurrency: g.currency,
+        toCurrency: primaryCurrency,
+        rates: exchangeRates,
+      );
+    }
+
     final playedGames = games.where((g) => g.totalMinutesPlayed > 0 && g.totalSpent > 0).toList();
-    playedGames.sort((a, b) => (a.costPerHour ?? 9999).compareTo(b.costPerHour ?? 9999));
+    playedGames.sort((a, b) => normalizedCostPerHour(a).compareTo(normalizedCostPerHour(b)));
     final bestRoiGames = playedGames.take(5).toList();
 
     final mostPlayedGames = List<GameEntry>.from(games);
@@ -96,15 +114,20 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
           ),
         ),
         actions: [
-          // M3 Currency Selector
+          // Currency Selector Button
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: PopupMenuButton<String>(
-              tooltip: 'Change Display Currency',
-              color: colorScheme.surfaceContainerHigh,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => CurrencyHelper.showCurrencyPicker(
+                context,
+                currentCurrency: primaryCurrency,
+                onSelected: (currency) {
+                  ref.read(settingsNotifierProvider.notifier).updatePrimaryCurrency(currency);
+                },
+              ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(20),
@@ -113,46 +136,27 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.payments_outlined, size: 16, color: colorScheme.primary),
+                    CurrencySymbolBox(
+                      currencyCode: primaryCurrency,
+                      size: 20,
+                      baseFontSize: 10,
+                      borderRadius: BorderRadius.circular(10),
+                      backgroundColor: colorScheme.primary,
+                      textColor: colorScheme.onPrimary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
-                      '$primaryCurrency ${CurrencyConverter.symbolFor(primaryCurrency)}',
+                      primaryCurrency,
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant, size: 18),
+                    const SizedBox(width: 4),
+                    Icon(Icons.keyboard_arrow_down, size: 16, color: colorScheme.onSurfaceVariant),
                   ],
                 ),
               ),
-              onSelected: (currency) {
-                ref.read(settingsNotifierProvider.notifier).updatePrimaryCurrency(currency);
-              },
-              itemBuilder: (ctx) => CurrencyConverter.supportedCurrencies.map((c) {
-                final isSelected = c == primaryCurrency;
-                return PopupMenuItem(
-                  value: c,
-                  child: Row(
-                    children: [
-                      Icon(
-                        isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                        size: 16,
-                        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$c (${CurrencyConverter.symbolFor(c)})',
-                        style: TextStyle(
-                          color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
             ),
           ),
         ],
@@ -182,7 +186,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Add games to your library to unlock ROI analytics, playtime tracking, and spend breakdowns.',
+                      'Add games to your library to unlock playtime tracking, ownership distribution, and value metrics.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
@@ -193,14 +197,14 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // 1. KPI Overview Bento Cards
+                // 1. KPI Overview Bento Cards (Normalized to M3 Primary & Secondary tones)
                 Row(
                   children: [
                     Expanded(
                       child: _buildKpiCard(
                         context: context,
                         title: 'Total Invested',
-                        value: CurrencyConverter.format(totalInvested, primaryCurrency),
+                        value: CurrencyHelper.format(totalInvested, currencyCode: primaryCurrency),
                         subtitle: 'Across ${games.length} titles',
                         icon: Icons.account_balance_wallet_outlined,
                         color: colorScheme.primary,
@@ -214,7 +218,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                         value: '${totalHours.toStringAsFixed(1)} hrs',
                         subtitle: '${(totalHours / 24).toStringAsFixed(1)} full days',
                         icon: Icons.schedule_rounded,
-                        color: LycorisColors.crimsonGlow,
+                        color: colorScheme.secondary,
                       ),
                     ),
                   ],
@@ -227,11 +231,11 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                         context: context,
                         title: 'Avg Cost / Hour',
                         value: avgCostPerHour > 0
-                            ? '${CurrencyConverter.symbolFor(primaryCurrency)}${avgCostPerHour.toStringAsFixed(2)}/hr'
+                            ? '${CurrencyHelper.format(avgCostPerHour, currencyCode: primaryCurrency)}/hr'
                             : 'N/A',
                         subtitle: 'Active played games',
                         icon: Icons.trending_up_rounded,
-                        color: LycorisColors.tierGreatValue,
+                        color: colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -239,10 +243,10 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                       child: _buildKpiCard(
                         context: context,
                         title: 'Backlog Capital',
-                        value: CurrencyConverter.format(backlogInvested, primaryCurrency),
+                        value: CurrencyHelper.format(backlogInvested, currencyCode: primaryCurrency),
                         subtitle: 'Unplayed investment',
                         icon: Icons.inventory_2_outlined,
-                        color: LycorisColors.warning,
+                        color: colorScheme.secondary,
                       ),
                     ),
                   ],
@@ -250,31 +254,30 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
 
                 const SizedBox(height: 16),
 
-                // 2. Spend by Storefront Chart
-                _buildStorefrontChartCard(
+                // 2. Games Owned by Platform Chart (Replaces Spend by Storefront)
+                _buildStorefrontOwnershipCard(
                   context: context,
-                  spendMap: storefrontSpendMap,
-                  totalInvested: totalInvested,
-                  currency: primaryCurrency,
+                  countMap: storefrontCountMap,
+                  totalGames: games.length,
                 ),
 
                 const SizedBox(height: 16),
 
-                // 3. Best ROI Champions
+                // 3. Best Value Champions Leaderboard (Normalized to colorScheme.primary)
                 _buildLeaderboardCard(
                   context: context,
                   title: 'Best Value Champions (Lowest Cost/Hr)',
                   items: bestRoiGames,
                   metricGetter: (g) =>
-                      '${CurrencyConverter.symbolFor(primaryCurrency)}${g.costPerHour?.toStringAsFixed(2) ?? "0"}/hr',
+                      '${CurrencyHelper.format(normalizedCostPerHour(g), currencyCode: primaryCurrency)}/hr',
                   currency: primaryCurrency,
                   icon: Icons.stars_rounded,
-                  accentColor: LycorisColors.tierGreatValue,
+                  accentColor: colorScheme.primary,
                 ),
 
                 const SizedBox(height: 16),
 
-                // 4. Most Played Time Sinks
+                // 4. Most Played Time Sinks Leaderboard (Normalized to colorScheme.secondary)
                 _buildLeaderboardCard(
                   context: context,
                   title: 'Top Time Sinks (Most Played)',
@@ -282,7 +285,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                   metricGetter: (g) => TimeNormalizer.format(g.totalMinutesPlayed),
                   currency: primaryCurrency,
                   icon: Icons.military_tech_rounded,
-                  accentColor: LycorisColors.crimsonLight,
+                  accentColor: colorScheme.secondary,
                 ),
 
                 const SizedBox(height: 32),
@@ -358,19 +361,29 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
     );
   }
 
-  Widget _buildStorefrontChartCard({
+  Widget _buildStorefrontOwnershipCard({
     required BuildContext context,
-    required Map<Storefront, double> spendMap,
-    required double totalInvested,
-    required String currency,
+    required Map<Storefront, int> countMap,
+    required int totalGames,
   }) {
-    if (spendMap.isEmpty || totalInvested <= 0) {
+    if (countMap.isEmpty || totalGames <= 0) {
       return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final entries = spendMap.entries.toList();
+    final entries = countMap.entries.toList();
+
+    // Harmonious M3 tonal palette for chart sections (no neon rainbow)
+    final chartPalette = [
+      colorScheme.primary,
+      colorScheme.secondary,
+      colorScheme.primary.withAlpha(190),
+      colorScheme.secondary.withAlpha(190),
+      colorScheme.primaryContainer,
+      colorScheme.secondaryContainer,
+      colorScheme.tertiary,
+    ];
 
     return Card(
       elevation: 0,
@@ -396,7 +409,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Spend by Storefront',
+                  'Games Owned by Platform',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
@@ -422,21 +435,23 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                               _touchedSectionIndex = -1;
                               return;
                             }
-                            _touchedSectionIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                            _touchedSectionIndex =
+                                pieTouchResponse.touchedSection!.touchedSectionIndex;
                           });
                         },
                       ),
+                      borderData: FlBorderData(show: false),
                       sectionsSpace: 3,
-                      centerSpaceRadius: 36,
+                      centerSpaceRadius: 38,
                       sections: List.generate(entries.length, (i) {
                         final isTouched = i == _touchedSectionIndex;
-                        final storefront = entries[i].key;
-                        final spend = entries[i].value;
-                        final percentage = (spend / totalInvested) * 100;
+                        final count = entries[i].value;
+                        final percentage = (count / totalGames) * 100;
+                        final sliceColor = chartPalette[i % chartPalette.length];
 
                         return PieChartSectionData(
-                          color: storefront.brandColor,
-                          value: spend,
+                          color: sliceColor,
+                          value: count.toDouble(),
                           title: isTouched ? '${percentage.toStringAsFixed(0)}%' : '',
                           radius: isTouched ? 32 : 26,
                           titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white),
@@ -451,8 +466,12 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: entries.map((e) {
-                      final percentage = ((e.value / totalInvested) * 100).toStringAsFixed(1);
+                    children: entries.asMap().entries.map((item) {
+                      final i = item.key;
+                      final e = item.value;
+                      final percentage = ((e.value / totalGames) * 100).toStringAsFixed(1);
+                      final sliceColor = chartPalette[i % chartPalette.length];
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: Row(
@@ -461,7 +480,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                               width: 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: e.key.brandColor,
+                                color: sliceColor,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -476,7 +495,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                               ),
                             ),
                             Text(
-                              '$percentage% (${CurrencyConverter.symbolFor(currency)}${e.value.toStringAsFixed(0)})',
+                              '${e.value} ($percentage%)',
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -588,9 +607,9 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: accentColor.withAlpha(30),
+                          color: accentColor.withAlpha(25),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: accentColor.withAlpha(90)),
+                          border: Border.all(color: accentColor.withAlpha(80)),
                         ),
                         child: Text(
                           metricGetter(game),

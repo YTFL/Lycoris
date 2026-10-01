@@ -4,6 +4,7 @@ import '../../../search/data/igdb_service.dart';
 import '../../../tracker/presentation/controllers/vault_notifier.dart';
 import '../../data/drive_vault_service.dart';
 import '../../data/settings_repository.dart';
+export 'exchange_rates_notifier.dart';
 
 final igdbServiceProvider = Provider<IGDBService>((ref) {
   return IGDBService();

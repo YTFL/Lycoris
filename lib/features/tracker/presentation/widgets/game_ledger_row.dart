@@ -1,12 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/utils/time_normalizer.dart';
-import '../../../../core/utils/value_metric_evaluator.dart';
 import '../../domain/models/game_entry.dart';
-import 'roi_badge.dart';
-import 'status_badge.dart';
-import 'storefront_badge.dart';
 
 class GameLedgerRow extends StatelessWidget {
   final GameEntry game;
@@ -20,119 +15,119 @@ class GameLedgerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metric = ValueMetricEvaluator.evaluate(
-      totalSpent: game.totalSpent,
-      totalMinutes: game.totalMinutesPlayed,
-      currency: game.currency,
-    );
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: LycorisColors.slateCard,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: LycorisColors.slateBorder, width: 1),
+          color: colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withAlpha(40),
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
-            // Cover Thumbnail
+            // 1. Cover Thumbnail
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               child: SizedBox(
-                width: 48,
-                height: 64,
+                width: 44,
+                height: 58,
                 child: game.coverUrl != null && game.coverUrl!.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: game.coverUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (c, u, e) => _buildPlaceholder(),
+                        placeholder: (c, u) => Container(
+                          color: colorScheme.surfaceContainerHigh,
+                        ),
+                        errorWidget: (c, u, e) => _buildPlaceholder(colorScheme),
                       )
-                    : _buildPlaceholder(),
+                    : _buildPlaceholder(colorScheme),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
 
-            // Info Column
+            // 2. Info Column: Title and Subtitle Row (Time Played & Rating)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     game.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: LycorisColors.textPrimary,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  const SizedBox(height: 5),
+                  Row(
                     children: [
-                      StorefrontBadge(
-                        storefront: game.storefront,
-                        showLabel: true,
+                      // Time Played
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      StatusBadge(status: game.status),
-                      if (game.personalRating > 0)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 14,
-                              color: Color(0xFFFFD700),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              game.personalRating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                color: Color(0xFFFFD700),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 4),
+                      Text(
+                        TimeNormalizer.format(game.totalMinutesPlayed),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant.withAlpha(120),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      // Rating
+                      Icon(
+                        game.personalRating > 0
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        size: 14,
+                        color: colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        game.personalRating > 0
+                            ? game.personalRating.toStringAsFixed(1)
+                            : '—',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.secondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(width: 12),
-
-            // Financial & Time Column
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                RoiBadge(metric: metric, compact: true),
-                const SizedBox(height: 5),
-                Text(
-                  TimeNormalizer.format(game.totalMinutesPlayed),
-                  style: const TextStyle(
-                    color: LycorisColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${game.currency} ${game.totalSpent.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: LycorisColors.textMuted,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
+            // Chevron
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: colorScheme.onSurfaceVariant.withAlpha(100),
             ),
           ],
         ),
@@ -140,14 +135,14 @@ class GameLedgerRow extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(ColorScheme colorScheme) {
     return Container(
-      color: LycorisColors.slateDark,
+      color: colorScheme.surfaceContainerHigh,
       child: Center(
         child: Icon(
-          game.storefront.fallbackIcon,
-          size: 24,
-          color: Colors.white24,
+          Icons.sports_esports_outlined,
+          size: 20,
+          color: colorScheme.onSurfaceVariant.withAlpha(80),
         ),
       ),
     );

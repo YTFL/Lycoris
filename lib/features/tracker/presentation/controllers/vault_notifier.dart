@@ -30,7 +30,7 @@ class VaultNotifier extends StateNotifier<VaultState> {
   VaultNotifier(this._gameRepo, this._settingsRepo)
       : super(VaultState(
           allGames: _gameRepo.getAll(),
-          viewMode: _settingsRepo.shelfViewMode,
+          viewMode: LibraryViewMode.fromString(_settingsRepo.shelfViewMode),
         )) {
     // Listen to Hive box mutations to automatically refresh UI
     _gameRepo.listenable().addListener(_onHiveChanged);
@@ -56,10 +56,57 @@ class VaultNotifier extends StateNotifier<VaultState> {
     state = state.copyWith(sortOption: option);
   }
 
-  void toggleViewMode() {
-    final newMode = state.viewMode == 'grid' ? 'list' : 'grid';
-    _settingsRepo.setShelfViewMode(newMode);
-    state = state.copyWith(viewMode: newMode);
+  void cycleViewMode() {
+    final nextMode = state.viewMode.next;
+    _settingsRepo.setShelfViewMode(nextMode.name);
+    state = state.copyWith(viewMode: nextMode);
+  }
+
+  void toggleViewMode() => cycleViewMode();
+
+  Future<void> updateStatus(String gameId, GameStatus status) async {
+    final game = _gameRepo.getById(gameId);
+    if (game != null) {
+      final updated = game.copyWith(
+        status: status,
+        updatedAt: DateTime.now(),
+      );
+      await _gameRepo.save(updated);
+    }
+  }
+
+  Future<void> updateGameDetails({
+    required GameEntry originalGame,
+    required String newTitle,
+    required Storefront newStorefront,
+    required GameStatus newStatus,
+    required double newBasePrice,
+    required String newCurrency,
+    required double newPersonalRating,
+    required String newNotes,
+  }) async {
+    final newId = originalGame.igdbId > 0
+        ? GameEntry.generateId(igdbId: originalGame.igdbId, storefront: newStorefront)
+        : (originalGame.id.startsWith('custom_') && originalGame.id.split('_').length >= 3)
+            ? 'custom_${originalGame.id.split('_')[1]}_${newStorefront.name}'
+            : GameEntry.generateId(igdbId: 0, storefront: newStorefront);
+
+    final updated = originalGame.copyWith(
+      id: newId,
+      title: newTitle,
+      storefront: newStorefront,
+      status: newStatus,
+      basePrice: newBasePrice,
+      currency: newCurrency,
+      personalRating: newPersonalRating,
+      notes: newNotes,
+      updatedAt: DateTime.now(),
+    );
+
+    if (originalGame.id != newId) {
+      await _gameRepo.delete(originalGame.id);
+    }
+    await _gameRepo.save(updated);
   }
 
   Future<void> saveGame(GameEntry game) async {

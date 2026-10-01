@@ -1,12 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/constants/colors.dart';
 import '../../../../core/utils/time_normalizer.dart';
-import '../../../../core/utils/value_metric_evaluator.dart';
 import '../../domain/models/game_entry.dart';
-import 'roi_badge.dart';
-import 'status_badge.dart';
-import 'storefront_badge.dart';
 
 class GameCoverCard extends StatelessWidget {
   final GameEntry game;
@@ -20,199 +15,173 @@ class GameCoverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metric = ValueMetricEvaluator.evaluate(
-      totalSpent: game.totalSpent,
-      totalMinutes: game.totalMinutesPlayed,
-      currency: game.currency,
-    );
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: LycorisColors.slateCard,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth;
+        final isCompact = cardWidth < 125;
+        final isVeryCompact = cardWidth < 95;
+
+        final titleFontSize = isVeryCompact ? 10.0 : (isCompact ? 11.5 : 13.0);
+        final metaFontSize = isVeryCompact ? 8.5 : (isCompact ? 10.0 : 11.0);
+        final iconSize = isVeryCompact ? 9.0 : (isCompact ? 11.0 : 12.0);
+        final paddingAmount = isVeryCompact ? 5.0 : (isCompact ? 6.0 : 8.0);
+
+        return InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: LycorisColors.slateBorder,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(80),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+          child: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withAlpha(50),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(80),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: AspectRatio(
-          aspectRatio: 3 / 4,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. Cover Artwork
-              if (game.coverUrl != null && game.coverUrl!.isNotEmpty)
-                CachedNetworkImage(
-                  imageUrl: game.coverUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: LycorisColors.slateDark,
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: LycorisColors.primaryCrimson,
+            clipBehavior: Clip.antiAlias,
+            child: AspectRatio(
+              aspectRatio: 3 / 4.4,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 1. Cover Artwork
+                  if (game.coverUrl != null && game.coverUrl!.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: game.coverUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: colorScheme.surfaceContainerHigh,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => _buildPlaceholder(),
-                )
-              else
-                _buildPlaceholder(),
+                      errorWidget: (context, url, error) => _buildPlaceholder(colorScheme),
+                    )
+                  else
+                    _buildPlaceholder(colorScheme),
 
-              // 2. Gradient Overlays for Readability
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: const [0.0, 0.25, 0.55, 1.0],
-                    colors: [
-                      Colors.black.withAlpha(190),
-                      Colors.transparent,
-                      Colors.black.withAlpha(120),
-                      Colors.black.withAlpha(240),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 3. Top Badges (Storefront & Status)
-              Positioned(
-                top: 8,
-                left: 8,
-                right: 8,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: StorefrontBadge(
-                        storefront: game.storefront,
-                        showLabel: false,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    StatusBadge(status: game.status),
-                  ],
-                ),
-              ),
-
-              // 4. Bottom Information Panel
-              Positioned(
-                bottom: 8,
-                left: 8,
-                right: 8,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Title
-                    Text(
-                      game.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        shadows: [
-                          Shadow(color: Colors.black, blurRadius: 4),
+                  // 2. High-Readability Bottom Gradient Scrim
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.45, 0.70, 1.0],
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withAlpha(160),
+                          Colors.black.withAlpha(245),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 6),
+                  ),
 
-                    // Metrics Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // 3. Bottom Information Panel: Title, Playtime & Rating only
+                  Positioned(
+                    bottom: paddingAmount,
+                    left: paddingAmount,
+                    right: paddingAmount,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Playtime indicator
+                        // Title
+                        Text(
+                          game.title,
+                          maxLines: isCompact ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                            shadows: const [
+                              Shadow(color: Colors.black, blurRadius: 4),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: isVeryCompact ? 2 : 4),
+
+                        // Subtitle Row: Playtime and Rating
                         Row(
                           children: [
-                            const Icon(
+                            // Playtime indicator
+                            Icon(
                               Icons.schedule_rounded,
-                              size: 11,
-                              color: LycorisColors.textSecondary,
+                              size: iconSize,
+                              color: colorScheme.onSurfaceVariant.withAlpha(220),
                             ),
                             const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                TimeNormalizer.format(game.totalMinutesPlayed),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant.withAlpha(220),
+                                  fontSize: metaFontSize,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+
+                            // Rating indicator (normalized to theme secondary color)
+                            Icon(
+                              game.personalRating > 0
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              size: iconSize,
+                              color: colorScheme.secondary,
+                            ),
+                            const SizedBox(width: 2),
                             Text(
-                              TimeNormalizer.format(game.totalMinutesPlayed),
-                              style: const TextStyle(
-                                color: LycorisColors.textSecondary,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                              game.personalRating > 0
+                                  ? game.personalRating.toStringAsFixed(1)
+                                  : '—',
+                              style: TextStyle(
+                                color: colorScheme.secondary,
+                                fontSize: metaFontSize,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
-
-                        // ROI Badge
-                        RoiBadge(
-                          metric: metric,
-                          compact: true,
-                        ),
                       ],
                     ),
-
-                    // Personal Rating Row if available
-                    if (game.personalRating > 0) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 13,
-                            color: Color(0xFFFFD700),
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            game.personalRating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: Color(0xFFFFD700),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(ColorScheme colorScheme) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            game.storefront.brandColor.withAlpha(80),
-            LycorisColors.slateDark,
-          ],
-        ),
+        color: colorScheme.surfaceContainerHigh,
       ),
       child: Center(
         child: Icon(
-          game.storefront.fallbackIcon,
-          size: 48,
-          color: Colors.white.withAlpha(40),
+          Icons.sports_esports_outlined,
+          size: 36,
+          color: colorScheme.onSurfaceVariant.withAlpha(80),
         ),
       ),
     );

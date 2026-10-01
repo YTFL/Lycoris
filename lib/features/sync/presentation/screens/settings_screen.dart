@@ -6,7 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/currency_converter.dart';
+import '../../../../core/services/exchange_rate_service.dart';
+import '../../../../core/utils/currency_helper.dart';
 import '../../../search/data/igdb_service.dart';
 import '../../../tracker/presentation/controllers/vault_notifier.dart';
 import '../controllers/settings_notifier.dart';
@@ -25,6 +26,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   bool _isTestingConnection = false;
   String? _testConnectionResult;
+  bool _isSyncingRates = false;
 
   @override
   void initState() {
@@ -133,11 +135,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _handleSyncRates({bool force = false}) async {
+    setState(() => _isSyncingRates = true);
+    final success = await ref
+        .read(exchangeRatesNotifierProvider.notifier)
+        .manualSync(force: force);
+
+    if (mounted) {
+      setState(() => _isSyncingRates = false);
+      if (success) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Exchange rates updated successfully!'),
+              backgroundColor: LycorisColors.success,
+            ),
+          );
+      } else {
+        final rates = ref.read(exchangeRatesNotifierProvider);
+        final remaining = ExchangeRateService.timeUntilNextSync(rates: rates);
+        final cooldownText = ExchangeRateService.formatCooldownRemaining(remaining);
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                ExchangeRateService.canSync(rates: rates)
+                    ? 'Failed to fetch live exchange rates. Check connection.'
+                    : '24-hour sync cooldown active. Next sync in $cooldownText.',
+              ),
+              backgroundColor: LycorisColors.warning,
+            ),
+          );
+      }
+    }
+  }
+
+  Future<void> _showCurrencyPicker(BuildContext context, String currentCurrency) async {
+    await CurrencyHelper.showCurrencyPicker(
+      context,
+      currentCurrency: currentCurrency,
+      onSelected: (code) async {
+        await ref.read(settingsNotifierProvider.notifier).updatePrimaryCurrency(code);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final settings = ref.watch(settingsNotifierProvider);
+    final exchangeRates = ref.watch(exchangeRatesNotifierProvider);
+    final currentCurrencyOption = CurrencyHelper.getOption(settings.primaryCurrency);
 
     return Scaffold(
       appBar: AppBar(
@@ -242,33 +293,137 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 14),
 
-          // 2. Primary Display Currency
+          // 2. Display Currency & Live FX Rates
           _buildCard(
             context: context,
-            title: 'Display Currency',
-            subtitle: 'Standardize multi-currency purchase values across all library entries.',
+            title: 'Display Currency & FX Rates',
+            subtitle: 'Standardize multi-currency purchase values across all library entries with live or offline conversion.',
             icon: Icons.currency_exchange_rounded,
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: settings.primaryCurrency,
-                dropdownColor: colorScheme.surfaceContainerHigh,
-                style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
-                decoration: _inputDecoration(
-                  context,
-                  label: 'Primary Currency',
-                  icon: Icons.payments_outlined,
+              // Primary Currency Tile
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CurrencySymbolBox(
+                  currencyCode: currentCurrencyOption.code,
+                  size: 38,
+                  backgroundColor: colorScheme.primaryContainer.withAlpha(120),
+                  textColor: colorScheme.primary,
                 ),
-                items: CurrencyConverter.supportedCurrencies.map((c) {
-                  return DropdownMenuItem(
-                    value: c,
-                    child: Text('$c (${CurrencyConverter.symbolFor(c)})'),
+                title: const Text(
+                  'Primary Currency',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  '${currentCurrencyOption.name} (${currentCurrencyOption.symbol})',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                onTap: () => _showCurrencyPicker(context, settings.primaryCurrency),
+              ),
+
+              Divider(color: colorScheme.outlineVariant.withAlpha(50), height: 24),
+
+              // Exchange Rates Sync Tile
+              Builder(
+                builder: (context) {
+                  final canSync = ExchangeRateService.canSync(rates: exchangeRates);
+                  final remaining = ExchangeRateService.timeUntilNextSync(rates: exchangeRates);
+                  final cooldownText = ExchangeRateService.formatCooldownRemaining(remaining);
+
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer.withAlpha(120),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.sync_rounded, color: colorScheme.primary, size: 22),
+                    ),
+                    title: const Text(
+                      'Live Exchange Rates',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      exchangeRates.isSeed
+                          ? 'Using baseline offline rates. Tap to sync live rates.'
+                          : 'Synced: ${DateFormat.yMMMd().add_jm().format(exchangeRates.lastUpdated)} ${canSync ? "• Ready to sync" : "• Next in $cooldownText"}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                    trailing: _isSyncingRates
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.primary,
+                            ),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.refresh_rounded),
+                            tooltip: canSync ? 'Fetch live FX rates' : 'Cooldown active ($cooldownText)',
+                            onPressed: () => _handleSyncRates(),
+                          ),
                   );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    ref.read(settingsNotifierProvider.notifier).updatePrimaryCurrency(val);
-                  }
                 },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Live Rates Overview Matrix
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorScheme.outlineVariant.withAlpha(60)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'CONVERSION BENCHMARK (BASE: 1 USD)',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: CurrencyHelper.supportedCurrencies
+                          .where((c) => c.code != 'USD')
+                          .map((c) {
+                        final rate = exchangeRates.rates[c.code] ?? 1.0;
+                        final formattedRate = c.code == 'JPY'
+                            ? rate.toStringAsFixed(0)
+                            : rate.toStringAsFixed(2);
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: colorScheme.outlineVariant.withAlpha(40)),
+                          ),
+                          child: Text(
+                            '${c.code}: ${c.symbol}$formattedRate',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -308,23 +463,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ],
-              Wrap(
-                spacing: 12,
-                runSpacing: 10,
+              Row(
                 children: [
-                  FilledButton.icon(
-                    icon: const Icon(Icons.cloud_upload_rounded, size: 18),
-                    label: const Text('Backup Now'),
-                    onPressed: settings.isSyncing
-                        ? null
-                        : () => ref.read(settingsNotifierProvider.notifier).backupToDrive(),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.cloud_upload_outlined, size: 18),
+                      label: const Text('Backup'),
+                      onPressed: settings.isSyncing
+                          ? null
+                          : () => ref.read(settingsNotifierProvider.notifier).backupToDrive(),
+                    ),
                   ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.cloud_download_rounded, size: 18),
-                    label: const Text('Restore from Drive'),
-                    onPressed: settings.isSyncing
-                        ? null
-                        : () => ref.read(settingsNotifierProvider.notifier).restoreFromDrive(),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.cloud_download_outlined, size: 18),
+                      label: const Text('Restore'),
+                      onPressed: settings.isSyncing
+                          ? null
+                          : () => ref.read(settingsNotifierProvider.notifier).restoreFromDrive(),
+                    ),
                   ),
                 ],
               ),
@@ -340,19 +498,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: '100% offline portability. Copy raw JSON to clipboard or import from local storage.',
             icon: Icons.folder_zip_outlined,
             children: [
-              Wrap(
-                spacing: 12,
-                runSpacing: 10,
+              Row(
                 children: [
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.content_copy_rounded, size: 18),
-                    label: const Text('Copy JSON'),
-                    onPressed: _handleFileExport,
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.content_copy_rounded, size: 18),
+                      label: const Text('Copy JSON'),
+                      onPressed: _handleFileExport,
+                    ),
                   ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.file_open_rounded, size: 18),
-                    label: const Text('Import JSON'),
-                    onPressed: _handleFileImport,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.file_open_rounded, size: 18),
+                      label: const Text('Import JSON'),
+                      onPressed: _handleFileImport,
+                    ),
                   ),
                 ],
               ),

@@ -5,6 +5,8 @@ import '../../../sync/presentation/screens/settings_screen.dart';
 import '../../../tracker/presentation/screens/vault_screen.dart';
 import '../../../tracker/presentation/widgets/intake_modal.dart';
 
+import '../controllers/home_nav_provider.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -13,8 +15,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _currentIndex = 0;
-
   final List<Widget> _destinations = const [
     VaultScreen(),
     AnalyticsDashboard(),
@@ -24,22 +24,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final currentIndex = ref.watch(homeNavIndexProvider);
 
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _destinations,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        selectedIndex: currentIndex,
         elevation: 3,
         shadowColor: Colors.black,
         surfaceTintColor: colorScheme.primary,
         indicatorColor: colorScheme.primaryContainer,
         onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          ref.read(homeNavIndexProvider.notifier).state = index;
         },
         destinations: [
           NavigationDestination(
@@ -59,7 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex == 0
+      floatingActionButton: currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
                 showDialog(

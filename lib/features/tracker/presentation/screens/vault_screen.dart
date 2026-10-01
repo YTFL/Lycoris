@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
+import '../../../home/presentation/controllers/home_nav_provider.dart';
 import '../controllers/vault_notifier.dart';
 import '../controllers/vault_state.dart';
 import '../widgets/game_cover_card.dart';
@@ -33,21 +35,101 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabStatuses.length, vsync: this);
-    _tabController.addListener(_onTabChanged);
-  }
-
-  void _onTabChanged() {
-    if (_tabController.indexIsChanging) return;
-    final selectedStatus = _tabStatuses[_tabController.index];
-    ref.read(vaultNotifierProvider.notifier).setStatusFilter(selectedStatus);
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showPlatformFilterSheet(BuildContext context, VaultState vaultState, VaultNotifier notifier) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter by Platform',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (vaultState.storefrontFilter != null)
+                        TextButton(
+                          onPressed: () {
+                            notifier.setStorefrontFilter(null);
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Reset'),
+                        ),
+                    ],
+                  ),
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.devices_other_rounded,
+                    color: vaultState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(
+                    'All Platforms',
+                    style: TextStyle(
+                      fontWeight: vaultState.storefrontFilter == null ? FontWeight.w800 : FontWeight.w500,
+                      color: vaultState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurface,
+                    ),
+                  ),
+                  trailing: Text('(${vaultState.allGames.length})'),
+                  onTap: () {
+                    notifier.setStorefrontFilter(null);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ...Storefront.values.map((s) {
+                  final isSelected = vaultState.storefrontFilter == s;
+                  final count = vaultState.allGames.where((g) => g.storefront == s).length;
+                  return ListTile(
+                    leading: Icon(
+                      s.fallbackIcon,
+                      color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                    ),
+                    title: Text(
+                      s.label,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                      ),
+                    ),
+                    trailing: Text('($count)'),
+                    onTap: () {
+                      notifier.setStorefrontFilter(isSelected ? null : s);
+                      Navigator.pop(ctx);
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -56,7 +138,6 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
     final colorScheme = theme.colorScheme;
     final vaultState = ref.watch(vaultNotifierProvider);
     final notifier = ref.read(vaultNotifierProvider.notifier);
-    final displayedGames = vaultState.filteredGames;
 
     return Scaffold(
       appBar: AppBar(
@@ -65,7 +146,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
             Icon(Icons.sports_esports, color: colorScheme.primary),
             const SizedBox(width: 10),
             Text(
-              'Lycoris',
+              'Library',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
@@ -74,16 +155,14 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
           ],
         ),
         actions: [
-          // View Mode Switcher (Grid vs List)
+          // 1. View Mode Switcher (Cycles: 2 cols -> 3 cols -> 4 cols -> list -> 2 cols)
           IconButton(
-            tooltip: vaultState.viewMode == 'grid' ? 'Switch to Ledger List' : 'Switch to Cover Grid',
-            icon: Icon(
-              vaultState.viewMode == 'grid' ? Icons.view_list_rounded : Icons.grid_view_rounded,
-            ),
-            onPressed: () => notifier.toggleViewMode(),
+            tooltip: vaultState.viewMode.label,
+            icon: Icon(vaultState.viewMode.icon),
+            onPressed: () => notifier.cycleViewMode(),
           ),
 
-          // Sort Menu
+          // 2. Sort Menu
           PopupMenuButton<VaultSortOption>(
             tooltip: 'Sort games',
             icon: const Icon(Icons.sort_rounded),
@@ -112,19 +191,49 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
               );
             }).toList(),
           ),
-          const SizedBox(width: 8),
+
+          // 3. Quick Header Navigation to Analytics
+          IconButton(
+            tooltip: 'Analytics',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => ref.read(homeNavIndexProvider.notifier).state = 1,
+          ),
+
+          // 4. Quick Header Navigation to Settings
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => ref.read(homeNavIndexProvider.notifier).state = 2,
+          ),
+          const SizedBox(width: 4),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(106),
           child: Column(
             children: [
-              // 1. Material You SearchBar
+              // SearchBar with leading platform filter button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: SearchBar(
                   controller: _searchController,
-                  hintText: 'Search library by title, genres, notes...',
-                  leading: const Icon(Icons.search),
+                  hintText: 'Search title, genres, notes...',
+                  leading: IconButton(
+                    icon: Badge(
+                      isLabelVisible: vaultState.storefrontFilter != null,
+                      backgroundColor: colorScheme.primary,
+                      smallSize: 8,
+                      child: Icon(
+                        vaultState.storefrontFilter != null
+                            ? vaultState.storefrontFilter!.fallbackIcon
+                            : Icons.filter_list_rounded,
+                        color: vaultState.storefrontFilter != null
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    tooltip: 'Filter by Platform',
+                    onPressed: () => _showPlatformFilterSheet(context, vaultState, notifier),
+                  ),
                   trailing: [
                     if (_searchController.text.isNotEmpty)
                       IconButton(
@@ -145,7 +254,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
                 ),
               ),
 
-              // 2. Material You TabBar for Statuses
+              // TabBar for Statuses (Synced with TabBarView for swiping)
               TabBar(
                 controller: _tabController,
                 isScrollable: true,
@@ -169,89 +278,117 @@ class _VaultScreenState extends ConsumerState<VaultScreen> with SingleTickerProv
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // Storefront Chips
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: const Text('All Platforms'),
-                    selected: vaultState.storefrontFilter == null,
-                    onSelected: (_) => notifier.setStorefrontFilter(null),
-                  ),
-                ),
-                ...Storefront.values.map((s) {
-                  final isSelected = vaultState.storefrontFilter == s;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      avatar: Icon(s.fallbackIcon, size: 14),
-                      label: Text(s.label),
-                      selected: isSelected,
-                      onSelected: (_) => notifier.setStorefrontFilter(isSelected ? null : s),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-
-          // Main View (Grid or List)
-          Expanded(
-            child: displayedGames.isEmpty
-                ? _buildEmptyState(context, vaultState.allGames.isEmpty)
-                : vaultState.viewMode == 'grid'
-                    ? GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 195,
-                          childAspectRatio: 3 / 4.4,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                        ),
-                        itemCount: displayedGames.length,
-                        itemBuilder: (context, index) {
-                          final game = displayedGames[index];
-                          return GameCoverCard(
-                            game: game,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DossierScreen(gameId: game.id),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        itemCount: displayedGames.length,
-                        itemBuilder: (context, index) {
-                          final game = displayedGames[index];
-                          return GameLedgerRow(
-                            game: game,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DossierScreen(gameId: game.id),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-          ),
-        ],
+      // Swipeable TabBarView across all tabs
+      body: TabBarView(
+        controller: _tabController,
+        children: _tabStatuses.map((st) {
+          return _buildGameListForStatus(context, st, vaultState);
+        }).toList(),
       ),
+    );
+  }
+
+  Widget _buildGameListForStatus(BuildContext context, GameStatus? status, VaultState vaultState) {
+    // Filter games by tab status, search query, and storefront filter
+    var games = List<GameEntry>.from(vaultState.allGames);
+
+    if (status != null) {
+      games = games.where((g) => g.status == status).toList();
+    }
+
+    if (vaultState.storefrontFilter != null) {
+      games = games.where((g) => g.storefront == vaultState.storefrontFilter).toList();
+    }
+
+    if (vaultState.searchQuery.trim().isNotEmpty) {
+      final query = vaultState.searchQuery.trim().toLowerCase();
+      games = games.where((g) {
+        return g.title.toLowerCase().contains(query) ||
+            g.genres.any((genre) => genre.toLowerCase().contains(query)) ||
+            g.notes.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Apply sorting
+    switch (vaultState.sortOption) {
+      case VaultSortOption.lastUpdated:
+        games.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        break;
+      case VaultSortOption.playtimeDesc:
+        games.sort((a, b) => b.totalMinutesPlayed.compareTo(a.totalMinutesPlayed));
+        break;
+      case VaultSortOption.costPerHourAsc:
+        games.sort((a, b) {
+          final costA = a.costPerHour ?? double.infinity;
+          final costB = b.costPerHour ?? double.infinity;
+          return costA.compareTo(costB);
+        });
+        break;
+      case VaultSortOption.ratingDesc:
+        games.sort((a, b) => b.personalRating.compareTo(a.personalRating));
+        break;
+      case VaultSortOption.priceDesc:
+        games.sort((a, b) => b.totalSpent.compareTo(a.totalSpent));
+        break;
+      case VaultSortOption.titleAsc:
+        games.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+    }
+
+    if (games.isEmpty) {
+      return _buildEmptyState(context, vaultState.allGames.isEmpty);
+    }
+
+    // List view
+    if (vaultState.viewMode == LibraryViewMode.list) {
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        itemCount: games.length,
+        itemBuilder: (context, index) {
+          final game = games[index];
+          return GameLedgerRow(
+            game: game,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DossierScreen(gameId: game.id),
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+
+    // Grid view (2, 3, or 4 columns)
+    final cols = vaultState.viewMode.columns;
+    final double childAspect = cols == 4 ? (3 / 4.8) : (cols == 3 ? (3 / 4.6) : (3 / 4.4));
+    final double spacing = cols == 4 ? 8.0 : (cols == 3 ? 10.0 : 14.0);
+
+    return GridView.builder(
+      padding: EdgeInsets.all(spacing),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        childAspectRatio: childAspect,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
+      ),
+      itemCount: games.length,
+      itemBuilder: (context, index) {
+        final game = games[index];
+        return GameCoverCard(
+          game: game,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DossierScreen(gameId: game.id),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

@@ -3,15 +3,31 @@ import 'package:lycoris/core/utils/value_metric_evaluator.dart';
 
 void main() {
   group('ValueMetricEvaluator Tests', () {
-    test('Zero spend yields free tier', () {
+    test('Zero spend with playtime yields engagement value yield', () {
       final metric = ValueMetricEvaluator.evaluate(
         totalSpent: 0.0,
-        totalMinutes: 120,
+        totalMinutes: 120, // 2.0h -> Tried
         currency: 'USD',
       );
-      expect(metric.tier, equals(ValueTier.free));
-      expect(metric.label, equals('Free / Gift'));
+      expect(metric.tier, equals(ValueTier.fairValue));
+      expect(metric.label, equals('2.0h • Tried'));
       expect(metric.costPerHour, equals(0.0));
+
+      final unplayedMetric = ValueMetricEvaluator.evaluate(
+        totalSpent: 0.0,
+        totalMinutes: 0,
+        currency: 'USD',
+      );
+      expect(unplayedMetric.tier, equals(ValueTier.unplayed));
+      expect(unplayedMetric.label, equals('Free • Unplayed'));
+
+      final highYieldMetric = ValueMetricEvaluator.evaluate(
+        totalSpent: 0.0,
+        totalMinutes: 35 * 60, // 35h -> Legendary Yield
+        currency: 'USD',
+      );
+      expect(highYieldMetric.tier, equals(ValueTier.greatValue));
+      expect(highYieldMetric.label, equals('35.0h • Legendary Yield'));
     });
 
     test('Unplayed game yields unplayed tier', () {

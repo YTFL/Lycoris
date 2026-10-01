@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import '../../../../core/constants/colors.dart';
-import '../../../../core/utils/currency_converter.dart';
-import '../../../../core/utils/time_normalizer.dart';
+import '../../../core/utils/currency_helper.dart';
+import '../../../core/utils/time_normalizer.dart';
 import '../../tracker/domain/models/game_entry.dart';
 import '../../tracker/domain/models/game_status.dart';
 import '../../tracker/domain/models/storefront.dart';
 
 class ManualGameModal extends StatefulWidget {
+  final String defaultCurrency;
   final ValueChanged<GameEntry> onSave;
 
   const ManualGameModal({
     super.key,
+    required this.defaultCurrency,
     required this.onSave,
   });
 
@@ -23,16 +24,23 @@ class _ManualGameModalState extends State<ManualGameModal> {
   final _titleController = TextEditingController();
   final _coverUrlController = TextEditingController();
   final _genresController = TextEditingController();
-  final _priceController = TextEditingController(text: '0.00');
+  final _priceController = TextEditingController();
+  final _notesController = TextEditingController();
+
   final _hoursController = TextEditingController();
   final _minutesController = TextEditingController();
-  final _notesController = TextEditingController();
 
   Storefront _selectedStorefront = Storefront.steam;
   GameStatus _selectedStatus = GameStatus.backlog;
-  String _selectedCurrency = 'USD';
+  late String _selectedCurrency;
   bool _isFree = false;
   double _rating = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCurrency = widget.defaultCurrency;
+  }
 
   @override
   void dispose() {
@@ -40,9 +48,9 @@ class _ManualGameModalState extends State<ManualGameModal> {
     _coverUrlController.dispose();
     _genresController.dispose();
     _priceController.dispose();
+    _notesController.dispose();
     _hoursController.dispose();
     _minutesController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -54,11 +62,13 @@ class _ManualGameModalState extends State<ManualGameModal> {
 
   void _submit() {
     final title = _titleController.text.trim();
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a game title'),
-          backgroundColor: LycorisColors.error,
+        SnackBar(
+          content: const Text('Please enter a game title'),
+          backgroundColor: colorScheme.error,
         ),
       );
       return;
@@ -102,11 +112,14 @@ class _ManualGameModalState extends State<ManualGameModal> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Dialog(
-      backgroundColor: LycorisColors.slateCard,
+      backgroundColor: colorScheme.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: LycorisColors.slateBorder),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 550, maxHeight: 720),
@@ -119,16 +132,15 @@ class _ManualGameModalState extends State<ManualGameModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Manual Game Entry',
-                    style: TextStyle(
-                      color: LycorisColors.textPrimary,
-                      fontSize: 18,
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: LycorisColors.textMuted),
+                    icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -141,29 +153,29 @@ class _ManualGameModalState extends State<ManualGameModal> {
                   children: [
                     TextField(
                       controller: _titleController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Game Title *', hint: 'e.g. Pokemon Radical Red'),
+                      decoration: _inputDecoration(context, 'Game Title *', hint: 'e.g. Pokemon Radical Red'),
                     ),
                     const SizedBox(height: 14),
 
                     TextField(
                       controller: _coverUrlController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Cover Artwork URL (Optional)', hint: 'https://.../cover.jpg'),
+                      decoration: _inputDecoration(context, 'Cover Artwork URL (Optional)', hint: 'https://.../cover.jpg'),
                     ),
                     const SizedBox(height: 14),
 
                     TextField(
                       controller: _genresController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Genres (Comma separated)', hint: 'RPG, ROM Hack, Indie'),
+                      decoration: _inputDecoration(context, 'Genres (Comma separated)', hint: 'RPG, ROM Hack, Indie'),
                     ),
                     const SizedBox(height: 16),
 
                     // Storefront Selector
-                    const Text(
+                    Text(
                       'Storefront / Platform',
-                      style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -172,15 +184,9 @@ class _ManualGameModalState extends State<ManualGameModal> {
                       children: Storefront.values.map((s) {
                         final isSelected = _selectedStorefront == s;
                         return ChoiceChip(
+                          avatar: Icon(s.fallbackIcon, size: 14),
                           label: Text(s.label),
                           selected: isSelected,
-                          selectedColor: s.brandColor,
-                          backgroundColor: LycorisColors.slateDark,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : LycorisColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
                           onSelected: (_) => setState(() => _selectedStorefront = s),
                         );
                       }).toList(),
@@ -188,9 +194,12 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     const SizedBox(height: 16),
 
                     // Play Status
-                    const Text(
+                    Text(
                       'Play Status',
-                      style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -199,14 +208,9 @@ class _ManualGameModalState extends State<ManualGameModal> {
                       children: GameStatus.values.map((st) {
                         final isSelected = _selectedStatus == st;
                         return ChoiceChip(
+                          avatar: Icon(st.icon, size: 14),
                           label: Text(st.displayName),
                           selected: isSelected,
-                          selectedColor: st.color.withAlpha(200),
-                          backgroundColor: LycorisColors.slateDark,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : LycorisColors.textSecondary,
-                            fontSize: 12,
-                          ),
                           onSelected: (_) => setState(() => _selectedStatus = st),
                         );
                       }).toList(),
@@ -220,11 +224,13 @@ class _ManualGameModalState extends State<ManualGameModal> {
                           flex: 2,
                           child: DropdownButtonFormField<String>(
                             initialValue: _selectedCurrency,
-                            dropdownColor: LycorisColors.slateDark,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                            decoration: _inputDecoration('Currency'),
-                            items: CurrencyConverter.supportedCurrencies.map((c) {
-                              return DropdownMenuItem(value: c, child: Text('$c (${CurrencyConverter.symbolFor(c)})'));
+                            dropdownColor: colorScheme.surfaceContainerHigh,
+                            decoration: _inputDecoration(context, 'Currency'),
+                            items: CurrencyHelper.supportedCurrencies.map((c) {
+                              return DropdownMenuItem(
+                                value: c.code,
+                                child: Text('${c.code} (${c.symbol})'),
+                              );
                             }).toList(),
                             onChanged: (val) {
                               if (val != null) setState(() => _selectedCurrency = val);
@@ -238,17 +244,16 @@ class _ManualGameModalState extends State<ManualGameModal> {
                             controller: _priceController,
                             enabled: !_isFree,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration('Base Price'),
+                            decoration: _inputDecoration(context, 'Base Price'),
                           ),
                         ),
                       ],
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(color: LycorisColors.textSecondary, fontSize: 13)),
+                      title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(fontSize: 13)),
                       value: _isFree,
-                      activeTrackColor: LycorisColors.primaryCrimson,
+                      activeThumbColor: colorScheme.primary,
                       onChanged: (val) => setState(() => _isFree = val),
                     ),
                     const SizedBox(height: 14),
@@ -260,8 +265,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                           child: TextField(
                             controller: _hoursController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration('Hours', suffix: 'h'),
+                            decoration: _inputDecoration(context, 'Hours', suffix: 'h'),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -270,8 +274,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                           child: TextField(
                             controller: _minutesController,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration('Minutes', suffix: 'm'),
+                            decoration: _inputDecoration(context, 'Minutes', suffix: 'm'),
                             onChanged: (_) => setState(() {}),
                           ),
                         ),
@@ -279,18 +282,30 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Rating Slider
-                    Text(
-                      'Personal Rating: ${_rating.toStringAsFixed(1)} / 10.0',
-                      style: const TextStyle(color: LycorisColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                    // Rating Slider (using colorScheme.secondary)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Personal Rating: ${_rating > 0 ? _rating.toStringAsFixed(1) : "Unrated"}',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.secondary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Icon(
+                          _rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 18,
+                          color: colorScheme.secondary,
+                        ),
+                      ],
                     ),
                     Slider(
                       value: _rating,
                       min: 0.0,
                       max: 10.0,
                       divisions: 20,
-                      activeColor: LycorisColors.primaryCrimson,
-                      inactiveColor: LycorisColors.slateBorder,
+                      activeColor: colorScheme.primary,
                       label: _rating.toStringAsFixed(1),
                       onChanged: (val) => setState(() => _rating = val),
                     ),
@@ -300,8 +315,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     TextField(
                       controller: _notesController,
                       maxLines: 3,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Personal Notes / Impressions'),
+                      decoration: _inputDecoration(context, 'Personal Notes / Impressions'),
                     ),
                   ],
                 ),
@@ -315,15 +329,10 @@ class _ManualGameModalState extends State<ManualGameModal> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: LycorisColors.textSecondary)),
+                    child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 12),
                   FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: LycorisColors.primaryCrimson,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
                     onPressed: _submit,
                     child: const Text('Save Game'),
                   ),
@@ -336,24 +345,27 @@ class _ManualGameModalState extends State<ManualGameModal> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, {String? hint, String? suffix}) {
+  InputDecoration _inputDecoration(BuildContext context, String label, {String? hint, String? suffix}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return InputDecoration(
       labelText: label,
       hintText: hint,
       suffixText: suffix,
-      labelStyle: const TextStyle(color: LycorisColors.textSecondary, fontSize: 13),
-      hintStyle: const TextStyle(color: LycorisColors.textMuted, fontSize: 12),
-      suffixStyle: const TextStyle(color: LycorisColors.textMuted),
       filled: true,
-      fillColor: LycorisColors.slateDark,
+      fillColor: colorScheme.surfaceContainer,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: LycorisColors.slateBorder),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: LycorisColors.primaryCrimson),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
     );
   }

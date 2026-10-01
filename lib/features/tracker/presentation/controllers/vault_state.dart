@@ -1,6 +1,47 @@
+import 'package:flutter/material.dart';
 import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
+
+enum LibraryViewMode {
+  grid2(2, Icons.grid_view_rounded, '2-Column Grid'),
+  grid3(3, Icons.view_module_rounded, '3-Column Grid'),
+  grid4(4, Icons.view_comfy_rounded, '4-Column Grid'),
+  list(1, Icons.view_list_rounded, 'List View');
+
+  final int columns;
+  final IconData icon;
+  final String label;
+  const LibraryViewMode(this.columns, this.icon, this.label);
+
+  LibraryViewMode get next {
+    switch (this) {
+      case LibraryViewMode.grid2:
+        return LibraryViewMode.grid3;
+      case LibraryViewMode.grid3:
+        return LibraryViewMode.grid4;
+      case LibraryViewMode.grid4:
+        return LibraryViewMode.list;
+      case LibraryViewMode.list:
+        return LibraryViewMode.grid2;
+    }
+  }
+
+  static LibraryViewMode fromString(String? val) {
+    switch (val) {
+      case 'grid3':
+        return LibraryViewMode.grid3;
+      case 'grid4':
+        return LibraryViewMode.grid4;
+      case 'list':
+        return LibraryViewMode.list;
+      case 'grid':
+      case 'grid2':
+      default:
+        return LibraryViewMode.grid2;
+    }
+  }
+}
 
 enum VaultSortOption {
   lastUpdated('Recently Updated'),
@@ -20,7 +61,7 @@ class VaultState {
   final Storefront? storefrontFilter;
   final String searchQuery;
   final VaultSortOption sortOption;
-  final String viewMode; // 'grid' or 'list'
+  final LibraryViewMode viewMode;
 
   const VaultState({
     this.allGames = const [],
@@ -28,7 +69,7 @@ class VaultState {
     this.storefrontFilter,
     this.searchQuery = '',
     this.sortOption = VaultSortOption.lastUpdated,
-    this.viewMode = 'grid',
+    this.viewMode = LibraryViewMode.grid2,
   });
 
   VaultState copyWith({
@@ -37,7 +78,7 @@ class VaultState {
     Storefront? Function()? storefrontFilter,
     String? searchQuery,
     VaultSortOption? sortOption,
-    String? viewMode,
+    LibraryViewMode? viewMode,
   }) {
     return VaultState(
       allGames: allGames ?? this.allGames,
