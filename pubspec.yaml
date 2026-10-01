@@ -1,0 +1,47 @@
+name: lycoris
+description: "Offline-first personal gaming ledger and vault."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+
+  # Local NoSQL Database
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Networking & Caching
+  dio: ^5.4.3+1
+  cached_network_image: ^3.3.1
+
+  # Google Drive Cloud Sync
+  google_sign_in: ^6.2.1
+  googleapis: ^13.1.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+
+  # Utilities, Charts & Visuals
+  uuid: ^4.4.0
+  intl: ^0.19.0
+  fl_chart: ^0.68.0
+  file_picker: ^13.1.0
+  flutter_svg: ^2.0.10+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+

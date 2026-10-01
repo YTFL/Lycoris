@@ -1,0 +1,9 @@
+name = "lycoris-igdb-proxy"
+main = "worker.js"
+compatibility_date = "2024-04-01"
+
+# Set these secret environment variables using:
+# wrangler secret put TWITCH_CLIENT_ID
+# wrangler secret put TWITCH_CLIENT_SECRET
+[vars]
+ENVIRONMENT = "production"
