@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — Lycoris</title>
+  <meta name="description" content="Terms of Service for Lycoris — Free, open-source personal gaming ledger and vault application.">
+  <meta name="theme-color" content="#090B0E">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-obsidian: #090B0E;
+      --bg-slate-dark: #0F1318;
+      --bg-slate-card: #161C24;
+      --bg-slate-elevated: #1F2631;
+      --border-slate: #2B3545;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+
+      --crimson-primary: #E53935;
+      --crimson-glow: #FF334B;
+      --crimson-light: #FF6B7D;
+      --crimson-dark: #B71C1C;
+
+      --text-primary: #F3F6FA;
+      --text-secondary: #9AA7B8;
+      --text-muted: #637286;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-obsidian);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+
+    body {
+      min-height: 100vh;
+      line-height: 1.7;
+      background: radial-gradient(circle at 50% 0%, rgba(229, 57, 53, 0.1), transparent 40%),
+                  var(--bg-obsidian);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(9, 11, 14, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--crimson-glow), var(--crimson-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(229, 57, 53, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .btn-back {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      transition: all 0.2s ease;
+    }
+
+    .btn-back:hover {
+      color: #fff;
+      background: var(--bg-slate-elevated);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .terms-header {
+      padding: 64px 0 32px;
+      border-bottom: 1px solid var(--border-slate);
+      margin-bottom: 40px;
+    }
+
+    .terms-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      color: #38BDF8;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .terms-content {
+      padding-bottom: 100px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 40px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      border-left: 3px solid var(--crimson-primary);
+      padding-left: 12px;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+
+    ul, ol {
+      color: var(--text-secondary);
+      margin-left: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--crimson-light);
+      font-size: 0.9em;
+    }
+
+    .notice-box {
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-slate);
+      background: var(--bg-obsidian);
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C12 2 10.5 7 8 8C5.5 9 2 9 2 9C2 9 6 11 7 13C8 15 7 19 7 19C7 19 10 16 12 16C14 16 17 19 17 19C17 19 16 15 17 13C18 11 22 9 22 9C22 9 18.5 9 16 8C13.5 7 12 2 12 2Z"/>
+          </svg>
+        </div>
+        <span>Lycoris</span>
+      </a>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="privacy.html" class="btn-back" style="background: transparent; border: none;">Privacy Policy</a>
+        <a href="index.html" class="btn-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+          </svg>
+          Back to Homepage
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="terms-header">
+      <div class="terms-badge">Legal Terms & License</div>
+      <h1>Terms of Service</h1>
+      <p class="last-updated">Last Updated & Effective Date: October 1, 2026</p>
+    </div>
+
+    <div class="terms-content">
+      <div class="notice-box">
+        <p style="margin-bottom: 0;"><strong>Summary:</strong> Lycoris is a free, open-source personal utility tool released under the GNU Affero General Public License v3.0 (AGPL-3.0). You own 100% of your data. The software is provided "as is" without warranty. Cloud backups are stored in your own Google Drive account under your direct control.</p>
+      </div>
+
+      <h2>1. Acceptance of Terms</h2>
+      <p>By downloading, installing, accessing, or using the <strong>Lycoris</strong> application, or by visiting our website, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not install or use the application.</p>
+
+      <h2>2. Open Source License & Software Nature</h2>
+      <p>Lycoris is free, open-source software provided under the <strong>GNU Affero General Public License v3.0 (AGPL-3.0)</strong>. You are permitted to inspect, modify, fork, and distribute the source code in accordance with the terms of the AGPL-3.0 as published in our official GitHub repository.</p>
+
+      <h2>3. User Data Ownership & Sovereignty</h2>
+      <p>You retain full and complete ownership of all data, records, playtime logs, expense items, notes, and custom entries that you input into Lycoris.</p>
+      <ul>
+        <li>Lycoris claims no proprietary rights, copyright, or intellectual property in your personal gaming ledger.</li>
+        <li>We do not host or store your records on proprietary servers. Your data is stored on your device or in your personal cloud accounts.</li>
+        <li>You are solely responsible for maintaining backups of your data (via local JSON export or the optional Google Drive sync feature).</li>
+      </ul>
+
+      <h2>4. Integration with Third-Party Services</h2>
+      <p>Lycoris provides optional integrations with third-party platforms to enhance functionality:</p>
+      
+      <h3>A. Google Drive API</h3>
+      <p>When you enable Google Drive sync, the application communicates directly with Google's servers using Google APIs. Your use of Google services is governed by the <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">Google Terms of Service</a>. Lycoris requests only the restricted <code>drive.file</code> scope to store your backup in your personal account.</p>
+
+      <h3>B. IGDB (Internet Game Database) / Twitch</h3>
+      <p>Game titles, release years, cover artwork, and genres are retrieved from the IGDB API (a service of Twitch Interactive, Inc.). Such content remains the intellectual property of their respective copyright holders, publishers, and developers. Lycoris proxies queries via an edge Cloudflare Worker for non-commercial informational purposes.</p>
+
+      <h2>5. Disclaimer of Warranties</h2>
+      <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.</p>
+      <p>IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+      <p>We do not warrant that:</p>
+      <ul>
+        <li>The application will meet all your requirements or operate error-free.</li>
+        <li>External services (such as Google Drive or IGDB APIs) will remain uninterrupted or perpetually accessible.</li>
+        <li>Calculations or currency estimates will be error-free across all foreign exchange fluctuations.</li>
+      </ul>
+
+      <h2>6. Limitation of Liability</h2>
+      <p>To the maximum extent permitted by applicable law, in no event shall the creators or contributors of Lycoris be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of data, device damage, or inability to access backups.</p>
+
+      <h2>7. Modifications to Terms</h2>
+      <p>We reserve the right to revise or update these Terms at any time by updating this document on our website. Continued use of the software after such revisions signifies your agreement to the modified Terms.</p>
+
+      <h2>8. Governing Law & Contact</h2>
+      <p>Any questions or feedback regarding these Terms should be directed to the official project repository:</p>
+      <p><a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">https://github.com/YTFL/Lycoris</a></p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div style="margin-bottom: 12px;">
+        <a href="index.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Home</a>
+        <a href="privacy.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Privacy Policy</a>
+        <a href="terms.html" style="color: #fff; text-decoration: none; margin: 0 12px; font-weight: 600;">Terms of Service</a>
+        <a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">GitHub</a>
+      </div>
+      <div>&copy; 2026 Lycoris Open Source Project. All rights reserved.</div>
+    </div>
+  </footer>
+</body>
+</html>

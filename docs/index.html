@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lycoris — Personal Gaming Ledger & Vault</title>
+  <meta name="description" content="Offline-first personal gaming ledger and vault. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up securely to your own private Google Drive.">
+  <meta name="theme-color" content="#090B0E">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Lycoris — Personal Gaming Ledger & Vault">
+  <meta property="og:description" content="Track multi-storefront ownership, itemize DLC spend, and calculate real cost-per-hour ROI. 100% offline-first with user-owned Google Drive backup.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-obsidian: #090B0E;
+      --bg-slate-dark: #0F1318;
+      --bg-slate-card: #161C24;
+      --bg-slate-elevated: #1F2631;
+      --border-slate: #2B3545;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+
+      --crimson-primary: #E53935;
+      --crimson-glow: #FF334B;
+      --crimson-light: #FF6B7D;
+      --crimson-dark: #B71C1C;
+
+      --text-primary: #F3F6FA;
+      --text-secondary: #9AA7B8;
+      --text-muted: #637286;
+
+      --tier-free: #AB47BC;
+      --tier-unplayed: #78909C;
+      --tier-great: #10B981;
+      --tier-fair: #0284C7;
+      --tier-costly: #F59E0B;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-obsidian);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.6;
+      background: radial-gradient(circle at 50% 0%, rgba(229, 57, 53, 0.12), transparent 50%),
+                  radial-gradient(circle at 90% 20%, rgba(2, 132, 199, 0.06), transparent 40%),
+                  var(--bg-obsidian);
+    }
+
+    /* Ambient background grid */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 900px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse at center top, black 30%, transparent 80%);
+      -webkit-mask-image: radial-gradient(ellipse at center top, black 30%, transparent 80%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header / Nav */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(9, 11, 14, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: all 0.3s ease;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--crimson-glow), var(--crimson-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px rgba(229, 57, 53, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #ffffff;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--crimson-primary), #D32F2F);
+      color: #ffffff;
+      box-shadow: 0 4px 18px rgba(229, 57, 53, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--crimson-glow), var(--crimson-primary));
+      box-shadow: 0 6px 24px rgba(229, 57, 53, 0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-slate-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-slate);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-slate-elevated);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(229, 57, 53, 0.1);
+      border: 1px solid rgba(229, 57, 53, 0.3);
+      color: var(--crimson-light);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--crimson-glow);
+      box-shadow: 0 0 8px var(--crimson-glow);
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 5.5vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-title span.highlight {
+      background: linear-gradient(135deg, #FFFFFF 30%, var(--crimson-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto 40px;
+      font-weight: 400;
+    }
+
+    .hero-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .hero-stats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 64px;
+    }
+
+    .hero-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-stat-item svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--tier-great);
+    }
+
+    /* Interactive Showcase Card */
+    .showcase-wrapper {
+      margin-top: 32px;
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(229, 57, 53, 0.08);
+      position: relative;
+    }
+
+    .showcase-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-slate);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .mode-toggle {
+      display: inline-flex;
+      background: var(--bg-obsidian);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-slate);
+    }
+
+    .mode-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-btn.active {
+      background: var(--bg-slate-elevated);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .mode-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Shelf View (Cards) */
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .game-card {
+      background: var(--bg-slate-dark);
+      border: 1px solid var(--border-slate);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+
+    .game-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(229, 57, 53, 0.4);
+    }
+
+    .card-cover {
+      height: 250px;
+      position: relative;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px;
+    }
+
+    .card-cover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(15, 19, 24, 0.95) 0%, rgba(15, 19, 24, 0.2) 60%, rgba(15, 19, 24, 0.7) 100%);
+      z-index: 1;
+    }
+
+    .cover-top, .cover-bottom {
+      position: relative;
+      z-index: 2;
+    }
+
+    .storefront-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      color: #fff;
+    }
+
+    .roi-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-great {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid var(--tier-great);
+      color: #34D399;
+    }
+
+    .badge-fair {
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid var(--tier-fair);
+      color: #38BDF8;
+    }
+
+    .badge-costly {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid var(--tier-costly);
+      color: #FBBF24;
+    }
+
+    .badge-free {
+      background: rgba(171, 71, 188, 0.2);
+      border: 1px solid var(--tier-free);
+      color: #CE93D8;
+    }
+
+    .card-info {
+      padding: 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .game-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .game-metrics {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 10px;
+      margin-top: 8px;
+    }
+
+    /* Ledger View (Table) */
+    .ledger-table-wrapper {
+      overflow-x: auto;
+      display: none;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    .ledger-table th {
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-slate);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .ledger-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+    }
+
+    .ledger-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .ledger-mono {
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    /* Interactive ROI Calculator */
+    .roi-section {
+      padding: 100px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 56px;
+    }
+
+    .section-eyebrow {
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--crimson-light);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+    }
+
+    .calculator-card {
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 20px;
+      padding: 40px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 40px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    @media (max-width: 860px) {
+      .calculator-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .calc-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .input-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .input-group label span.val {
+      font-family: var(--font-mono);
+      color: var(--crimson-light);
+    }
+
+    .calc-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bg-slate-dark);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .calc-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--crimson-glow);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--crimson-glow);
+      border: 2px solid #fff;
+    }
+
+    .calc-result-box {
+      background: var(--bg-slate-dark);
+      border: 1px solid var(--border-slate);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .calc-result-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--crimson-primary), var(--crimson-glow));
+    }
+
+    .result-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .result-rate {
+      font-family: var(--font-mono);
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .result-rate span {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .calc-tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 16px;
+      text-transform: uppercase;
+    }
+
+    .calc-breakdown {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    /* Bento Grid */
+    .bento-section {
+      padding: 80px 0;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 992px) {
+      .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bento-card {
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 18px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(229, 57, 53, 0.4);
+      transform: translateY(-3px);
+    }
+
+    .bento-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(229, 57, 53, 0.1);
+      border: 1px solid rgba(229, 57, 53, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .bento-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--crimson-light);
+    }
+
+    .bento-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .bento-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Architecture & Google Drive Section */
+    .arch-section {
+      padding: 100px 0;
+      background: linear-gradient(180deg, transparent, rgba(15, 19, 24, 0.5) 40%, transparent);
+    }
+
+    .arch-box {
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 20px;
+      padding: 48px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    @media (max-width: 860px) {
+      .arch-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .pipeline-diagram {
+      background: var(--bg-obsidian);
+      border: 1px solid var(--border-slate);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .diagram-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      background: var(--bg-slate-dark);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--crimson-primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .step-text h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+
+    .step-text p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .security-points {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .security-points li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .security-points li svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--tier-great);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* FAQ */
+    .faq-section {
+      padding: 80px 0 120px;
+    }
+
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .faq-question {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      user-select: none;
+    }
+
+    .faq-question svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      padding: 0 24px;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+      padding-bottom: 24px;
+    }
+
+    .faq-item.open .faq-question svg {
+      transform: rotate(180deg);
+      fill: var(--crimson-light);
+    }
+
+    /* CTA Section */
+    .cta-banner {
+      background: radial-gradient(circle at 50% 50%, rgba(229, 57, 53, 0.15), transparent 70%),
+                  var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 24px;
+      padding: 64px 32px;
+      text-align: center;
+      margin-bottom: 100px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .cta-banner h2 {
+      font-size: clamp(2rem, 3.5vw, 2.75rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-banner p {
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 32px;
+      font-size: 1.1rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-slate);
+      background: var(--bg-obsidian);
+      padding: 60px 0 40px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+
+    @media (max-width: 768px) {
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .footer-col h5 {
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col ul a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-col ul a:hover {
+      color: var(--crimson-light);
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 32px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* Mobile Nav Toggle */
+    .mobile-nav-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      .mobile-nav-toggle {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container nav-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <!-- Spider Lily Icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C12 2 10.5 7 8 8C5.5 9 2 9 2 9C2 9 6 11 7 13C8 15 7 19 7 19C7 19 10 16 12 16C14 16 17 19 17 19C17 19 16 15 17 13C18 11 22 9 22 9C22 9 18.5 9 16 8C13.5 7 12 2 12 2Z"/>
+          </svg>
+        </div>
+        <span>Lycoris</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#modes">Shelf & Ledger</a></li>
+        <li><a href="#roi">ROI Calculator</a></li>
+        <li><a href="#security">Google Drive Sync</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+        <a href="#download" class="btn btn-primary">Get App</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        v1.0.0 • Offline-First Personal Gaming Ledger & Vault
+      </div>
+
+      <h1 class="hero-title">
+        Know What Your Playtime <br>
+        <span class="highlight">Is Actually Worth.</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        An offline-first vault and financial ledger for your gaming library. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up seamlessly to your own private Google Drive.
+      </p>
+
+      <div class="hero-cta">
+        <a href="https://github.com/YTFL/Lycoris/releases" class="btn btn-primary" style="padding: 14px 28px; font-size: 1.05rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+          </svg>
+          Download APK Release
+        </a>
+        <a href="#modes" class="btn btn-secondary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Explore Interface
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat-item">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          <span>100% Offline-First (Hive NoSQL)</span>
+        </div>
+        <div class="hero-stat-item">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          <span>Zero Telemetry or Central Database</span>
+        </div>
+        <div class="hero-stat-item">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          <span>Isolated Google Drive Sync (`drive.file`)</span>
+        </div>
+      </div>
+
+      <!-- Interactive Dual Mode Mockup -->
+      <div id="modes" class="showcase-wrapper">
+        <div class="showcase-header">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; text-align: left;">Live Interface Preview</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); text-align: left;">Switch between visual box art curation and tabular financial auditing</p>
+          </div>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="btn-shelf" onclick="switchMode('shelf')">
+              <svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
+              The Shelf
+            </button>
+            <button class="mode-btn" id="btn-ledger" onclick="switchMode('ledger')">
+              <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+              The Ledger
+            </button>
+          </div>
+        </div>
+
+        <!-- Shelf View -->
+        <div class="shelf-grid" id="shelf-view">
+          <!-- Game 1 -->
+          <div class="game-card">
+            <div class="card-cover" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg');">
+              <div class="cover-top">
+                <span class="storefront-badge">Steam</span>
+              </div>
+              <div class="cover-bottom">
+                <span class="roi-badge badge-great">Great Value • $0.32/hr</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="game-title">Elden Ring</div>
+              <div class="game-metrics">
+                <span>187.5 hrs</span>
+                <span>$59.99</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game 2 -->
+          <div class="game-card">
+            <div class="card-cover" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg');">
+              <div class="cover-top">
+                <span class="storefront-badge">Switch</span>
+              </div>
+              <div class="cover-bottom">
+                <span class="roi-badge badge-great">Great Value • $0.21/hr</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="game-title">Hollow Knight</div>
+              <div class="game-metrics">
+                <span>71.0 hrs</span>
+                <span>$14.99</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game 3 -->
+          <div class="game-card">
+            <div class="card-cover" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_cover_big/co2mdf.jpg');">
+              <div class="cover-top">
+                <span class="storefront-badge">PlayStation 5</span>
+              </div>
+              <div class="cover-bottom">
+                <span class="roi-badge badge-fair">Fair Value • $1.42/hr</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="game-title">Cyberpunk 2077</div>
+              <div class="game-metrics">
+                <span>63.2 hrs</span>
+                <span>$89.98 (DLC)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game 4 -->
+          <div class="game-card">
+            <div class="card-cover" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_cover_big/co670h.jpg');">
+              <div class="cover-top">
+                <span class="storefront-badge">GOG</span>
+              </div>
+              <div class="cover-bottom">
+                <span class="roi-badge badge-great">Great Value • $0.54/hr</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="game-title">Baldur's Gate 3</div>
+              <div class="game-metrics">
+                <span>128.0 hrs</span>
+                <span>$69.99</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game 5 -->
+          <div class="game-card">
+            <div class="card-cover" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_cover_big/co1x77.jpg');">
+              <div class="cover-top">
+                <span class="storefront-badge">Steam</span>
+              </div>
+              <div class="cover-bottom">
+                <span class="roi-badge badge-costly">Costly • $4.16/hr</span>
+              </div>
+            </div>
+            <div class="card-info">
+              <div class="game-title">Starfield</div>
+              <div class="game-metrics">
+                <span>16.8 hrs</span>
+                <span>$69.99</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ledger View -->
+        <div class="ledger-table-wrapper" id="ledger-view">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Storefront</th>
+                <th>Base Spend</th>
+                <th>DLC / Extras</th>
+                <th>Total Invested</th>
+                <th>Hours</th>
+                <th>Effective ROI</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 700;">Elden Ring</td>
+                <td><span class="storefront-badge">Steam</span></td>
+                <td class="ledger-mono">$59.99</td>
+                <td class="ledger-mono">$0.00</td>
+                <td class="ledger-mono" style="color: #fff;">$59.99</td>
+                <td class="ledger-mono">187h 30m</td>
+                <td class="ledger-mono" style="color: var(--tier-great);">$0.32 / hr</td>
+                <td><span class="roi-badge badge-great">Great Value</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700;">Hollow Knight</td>
+                <td><span class="storefront-badge">Switch</span></td>
+                <td class="ledger-mono">$14.99</td>
+                <td class="ledger-mono">$0.00</td>
+                <td class="ledger-mono" style="color: #fff;">$14.99</td>
+                <td class="ledger-mono">71h 00m</td>
+                <td class="ledger-mono" style="color: var(--tier-great);">$0.21 / hr</td>
+                <td><span class="roi-badge badge-great">Great Value</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700;">Cyberpunk 2077</td>
+                <td><span class="storefront-badge">PlayStation 5</span></td>
+                <td class="ledger-mono">$59.99</td>
+                <td class="ledger-mono">$29.99 (Phantom Liberty)</td>
+                <td class="ledger-mono" style="color: #fff;">$89.98</td>
+                <td class="ledger-mono">63h 12m</td>
+                <td class="ledger-mono" style="color: var(--tier-fair);">$1.42 / hr</td>
+                <td><span class="roi-badge badge-fair">Fair Value</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700;">Baldur's Gate 3</td>
+                <td><span class="storefront-badge">GOG</span></td>
+                <td class="ledger-mono">$69.99</td>
+                <td class="ledger-mono">$0.00</td>
+                <td class="ledger-mono" style="color: #fff;">$69.99</td>
+                <td class="ledger-mono">128h 00m</td>
+                <td class="ledger-mono" style="color: var(--tier-great);">$0.54 / hr</td>
+                <td><span class="roi-badge badge-great">Great Value</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700;">Starfield</td>
+                <td><span class="storefront-badge">Steam</span></td>
+                <td class="ledger-mono">$69.99</td>
+                <td class="ledger-mono">$0.00</td>
+                <td class="ledger-mono" style="color: #fff;">$69.99</td>
+                <td class="ledger-mono">16h 48m</td>
+                <td class="ledger-mono" style="color: var(--tier-costly);">$4.16 / hr</td>
+                <td><span class="roi-badge badge-costly">Costly</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive ROI Calculator Section -->
+  <section class="roi-section" id="roi">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Financial Intelligence</div>
+        <h2 class="section-title">The Real-Time ROI Engine</h2>
+        <p class="section-desc">Experience how Lycoris evaluates your video game investments. Adjust the base purchase price, itemized DLCs, and playtime below.</p>
+      </div>
+
+      <div class="calculator-card">
+        <div class="calc-inputs">
+          <div class="input-group">
+            <label>
+              <span>Base Game Price</span>
+              <span class="val" id="lbl-price">$59.99</span>
+            </label>
+            <input type="range" class="calc-slider" id="slider-price" min="0" max="100" step="1" value="60" oninput="updateCalculator()">
+          </div>
+
+          <div class="input-group">
+            <label>
+              <span>Additional DLC & Microtransactions</span>
+              <span class="val" id="lbl-dlc">$25.00</span>
+            </label>
+            <input type="range" class="calc-slider" id="slider-dlc" min="0" max="150" step="5" value="25" oninput="updateCalculator()">
+          </div>
+
+          <div class="input-group">
+            <label>
+              <span>Total Playtime (Hours)</span>
+              <span class="val" id="lbl-hours">65 hrs</span>
+            </label>
+            <input type="range" class="calc-slider" id="slider-hours" min="0" max="250" step="1" value="65" oninput="updateCalculator()">
+          </div>
+        </div>
+
+        <div class="calc-result-box">
+          <div class="result-label">Effective Cost Per Hour</div>
+          <div class="result-rate" id="calc-rate">$1.31<span> / hr</span></div>
+          <div id="calc-tier" class="calc-tier-badge badge-fair">Fair Value (≤ $3.50/hr)</div>
+
+          <div class="calc-breakdown">
+            <div>Total Invested: <strong id="calc-total" style="color: #fff;">$85.00</strong></div>
+            <div>Normalized: <strong id="calc-min" style="color: #fff;">3,900 mins</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bento Features Grid -->
+  <section class="bento-section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Core Architecture</div>
+        <h2 class="section-title">Engineered for Sovereign Gamers</h2>
+        <p class="section-desc">No accounts. No server dependencies. No tracking. Pure local power with optional Google Drive backup.</p>
+      </div>
+
+      <div class="bento-grid">
+        <!-- 1 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+          </div>
+          <h3 class="bento-title">Offline-First Hive Vault</h3>
+          <p class="bento-desc">Zero loading spinners. Your games, playtime, and itemized receipts live in a super-fast local Hive NoSQL database directly on your phone storage.</p>
+        </div>
+
+        <!-- 2 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+          </div>
+          <h3 class="bento-title">Multi-Storefront Tracking</h3>
+          <p class="bento-desc">Track ownership across Steam, PlayStation, Switch, Xbox, GOG, itch.io, and Physical. Composite key mapping ensures you can log separate spend on each platform.</p>
+        </div>
+
+        <!-- 3 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+          </div>
+          <h3 class="bento-title">3-Mode Playtime Normalizer</h3>
+          <p class="bento-desc">Input time the way you like: <strong style="color: #fff;">Hours + Mins</strong>, <strong style="color: #fff;">Decimal Hours</strong>, or <strong style="color: #fff;">Pure Minutes</strong>. Lycoris automatically synchronizes and formats canonical playtime.</p>
+        </div>
+
+        <!-- 4 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+          </div>
+          <h3 class="bento-title">Itemized DLC & Microtransactions</h3>
+          <p class="bento-desc">A complete financial ledger for Season Passes, expansions, and in-game skins. Instantly recalculates true cost-per-hour as your spending evolves.</p>
+        </div>
+
+        <!-- 5 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+          </div>
+          <h3 class="bento-title">Stateless IGDB Cloudflare Proxy</h3>
+          <p class="bento-desc">Queries game metadata via a dedicated serverless Cloudflare Worker proxy. Twitch OAuth tokens are cached server-side without transmitting or logging your IP or library data.</p>
+        </div>
+
+        <!-- 6 -->
+        <div class="bento-card">
+          <div class="bento-icon">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+          </div>
+          <h3 class="bento-title">User-Owned Google Drive Sync</h3>
+          <p class="bento-desc">Direct backup to your personal Google Drive with restricted <code style="color: var(--crimson-light);">drive.file</code> scope. Delta synchronization powered by Last-Write-Wins (LWW) conflict resolution.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Google Drive & Security Section -->
+  <section class="arch-section" id="security">
+    <div class="container">
+      <div class="arch-box">
+        <div class="arch-grid">
+          <div>
+            <div class="section-eyebrow">Data Sovereignty & Architecture</div>
+            <h2 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px;">
+              Your Data Stays Yours. Period.
+            </h2>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">
+              Unlike commercial trackers that sell your behavioral data or shut down when their servers run out of funds, Lycoris is built on an immutable principle: <strong>You own your data.</strong>
+            </p>
+
+            <ul class="security-points">
+              <li>
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>Restricted Scope (`drive.file`):</strong> Lycoris can only see and edit the files it creates in your Google Drive. It has zero access to your photos, personal documents, or other files.</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>Dedicated Folder:</strong> Backups are saved to a visible <code style="color: #fff; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;">Lycoris/lycoris_vault_backup.json</code> file in your Google Drive root.</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>No Central Server:</strong> We do not run databases that store your username, games, or gameplay habits.</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                <span><strong>Air-Gapped Offline Exports:</strong> Export raw JSON files or copy payloads directly to your device clipboard anytime.</span>
+              </li>
+            </ul>
+
+            <div style="margin-top: 32px;">
+              <a href="privacy.html" class="btn btn-secondary">Read Full Privacy Policy &rarr;</a>
+            </div>
+          </div>
+
+          <div class="pipeline-diagram">
+            <div class="diagram-step">
+              <div class="step-num">1</div>
+              <div class="step-text">
+                <h4>Local Device Storage</h4>
+                <p>Hive NoSQL database on Android/iOS manages the primary state. Instant, offline, and zero-latency.</p>
+              </div>
+            </div>
+
+            <div class="diagram-step">
+              <div class="step-num">2</div>
+              <div class="step-text">
+                <h4>Stateless IGDB Proxy</h4>
+                <p>Anonymous queries fetch cover artwork and release dates through an edge Cloudflare Worker proxy.</p>
+              </div>
+            </div>
+
+            <div class="diagram-step">
+              <div class="step-num">3</div>
+              <div class="step-text">
+                <h4>Google Drive Sync</h4>
+                <p>Optionally pushes encrypted/sanitized JSON delta backups using Last-Write-Wins (LWW) conflict merging.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Common Questions</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Everything you need to know about Lycoris, security, and privacy.</p>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>Can Lycoris see my other Google Drive files or photos?</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p><strong>Absolutely not.</strong> Lycoris requests only the restricted <code style="color: var(--crimson-light);">https://www.googleapis.com/auth/drive.file</code> OAuth scope. This permission is strictly limited: the application can only view, edit, or delete files that it created itself (specifically, the <code style="color: #fff;">Lycoris/</code> backup folder). It is technically impossible for the app to access, browse, or read any other files, folders, photos, or documents in your Google Drive.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>Do I need to sign in or create an account to use the app?</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>No! Lycoris does not require any account creation. You can use 100% of the ledger, tracker, and analytics features completely offline. Google Drive sync is completely optional for users who want effortless cloud backups across multiple devices.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>How does the cost-per-hour ROI calculation work?</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>Lycoris sums the base game price with all itemized additional expenses (DLCs, expansions, microtransactions), then divides that by your total normalized logged hours. Games are then assigned value tiers: <strong>Free / Gift</strong> ($0.00), <strong>Great Value</strong> (≤ $1.00/hr), <strong>Fair Value</strong> (≤ $3.50/hr), and <strong>Costly</strong> (> $3.50/hr).</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>Can I add games that aren't on IGDB?</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>Yes. Lycoris includes a dedicated Manual Entry modal that allows you to add custom indie titles, retro ROM hacks, itch.io prototypes, or tabletop games with custom cover images, tags, storefronts, and notes.</p>
+          </div>
+        </div>
+
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-question">
+            <span>What happens if I lose my phone or change devices?</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="faq-answer">
+            <p>If you have Google Drive sync enabled, simply install Lycoris on your new device, sign in with the same Google Account in Settings, and tap <strong>Restore from Drive</strong>. The app will pull your backup and merge all records seamlessly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="container" id="download">
+    <div class="cta-banner">
+      <h2>Take Ownership of Your Gaming Ledger</h2>
+      <p>Download the free, open-source Android APK today and experience true data sovereignty.</p>
+      <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+        <a href="https://github.com/YTFL/Lycoris/releases" class="btn btn-primary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Download Latest Release (.apk)
+        </a>
+        <a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding: 14px 28px; font-size: 1.05rem;">
+          Star on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div class="brand-icon" style="width: 28px; height: 28px;">
+              <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                <path d="M12 2C12 2 10.5 7 8 8C5.5 9 2 9 2 9C2 9 6 11 7 13C8 15 7 19 7 19C7 19 10 16 12 16C14 16 17 19 17 19C17 19 16 15 17 13C18 11 22 9 22 9C22 9 18.5 9 16 8C13.5 7 12 2 12 2Z"/>
+              </svg>
+            </div>
+            <span style="font-weight: 700; color: #fff; font-size: 1.1rem;">Lycoris</span>
+          </div>
+          <p style="font-size: 0.9rem; line-height: 1.6; max-width: 320px;">
+            An offline-first personal gaming ledger and vault. Built with Flutter, Riverpod, Hive, and Google Drive sync.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h5>Navigation</h5>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#modes">Shelf & Ledger</a></li>
+            <li><a href="#roi">ROI Calculator</a></li>
+            <li><a href="#security">Architecture</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Legal & Security</h5>
+          <ul>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="terms.html">Terms & Conditions</a></li>
+            <li><a href="privacy.html#google-drive">Google Drive Limited Use</a></li>
+            <li><a href="privacy.html#igdb">IGDB Data Attribution</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Project</h5>
+          <ul>
+            <li><a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+            <li><a href="https://github.com/YTFL/Lycoris/releases" target="_blank" rel="noopener noreferrer">Releases & Changelog</a></li>
+            <li><a href="https://github.com/YTFL/Lycoris/issues" target="_blank" rel="noopener noreferrer">Issue Tracker</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Lycoris Open Source Project. Released under the GNU AGPL v3.0 License.</div>
+        <div style="font-size: 0.85rem;">Game metadata and images powered by <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary);">IGDB</a>.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Toggle Shelf vs Ledger View
+    function switchMode(mode) {
+      const shelf = document.getElementById('shelf-view');
+      const ledger = document.getElementById('ledger-view');
+      const btnShelf = document.getElementById('btn-shelf');
+      const btnLedger = document.getElementById('btn-ledger');
+
+      if (mode === 'shelf') {
+        shelf.style.display = 'grid';
+        ledger.style.display = 'none';
+        btnShelf.classList.add('active');
+        btnLedger.classList.remove('active');
+      } else {
+        shelf.style.display = 'none';
+        ledger.style.display = 'block';
+        btnShelf.classList.remove('active');
+        btnLedger.classList.add('active');
+      }
+    }
+
+    // Interactive ROI Calculator Logic
+    function updateCalculator() {
+      const price = parseFloat(document.getElementById('slider-price').value);
+      const dlc = parseFloat(document.getElementById('slider-dlc').value);
+      const hours = parseFloat(document.getElementById('slider-hours').value);
+
+      document.getElementById('lbl-price').innerText = '$' + price.toFixed(2);
+      document.getElementById('lbl-dlc').innerText = '$' + dlc.toFixed(2);
+      document.getElementById('lbl-hours').innerText = hours + ' hrs';
+
+      const totalSpent = price + dlc;
+      document.getElementById('calc-total').innerText = '$' + totalSpent.toFixed(2);
+      document.getElementById('calc-min').innerText = (hours * 60).toLocaleString() + ' mins';
+
+      const rateBox = document.getElementById('calc-rate');
+      const tierBadge = document.getElementById('calc-tier');
+
+      if (hours === 0) {
+        rateBox.innerHTML = totalSpent === 0 ? '$0.00<span> / hr</span>' : 'N/A<span> / unplayed</span>';
+        tierBadge.className = 'calc-tier-badge';
+        tierBadge.style.background = 'rgba(120, 144, 156, 0.2)';
+        tierBadge.style.border = '1px solid var(--tier-unplayed)';
+        tierBadge.style.color = '#B0BEC5';
+        tierBadge.innerText = 'Unplayed Backlog';
+        return;
+      }
+
+      if (totalSpent === 0) {
+        rateBox.innerHTML = '$0.00<span> / hr</span>';
+        tierBadge.className = 'calc-tier-badge';
+        tierBadge.style.background = 'rgba(171, 71, 188, 0.2)';
+        tierBadge.style.border = '1px solid var(--tier-free)';
+        tierBadge.style.color = '#CE93D8';
+        tierBadge.innerText = 'Free / Gifted Tier';
+        return;
+      }
+
+      const costPerHour = totalSpent / hours;
+      rateBox.innerHTML = '$' + costPerHour.toFixed(2) + '<span> / hr</span>';
+
+      tierBadge.className = 'calc-tier-badge';
+      if (costPerHour <= 1.00) {
+        tierBadge.classList.add('badge-great');
+        tierBadge.innerText = 'Great Value (≤ $1.00/hr)';
+      } else if (costPerHour <= 3.50) {
+        tierBadge.classList.add('badge-fair');
+        tierBadge.innerText = 'Fair Value (≤ $3.50/hr)';
+      } else {
+        tierBadge.classList.add('badge-costly');
+        tierBadge.innerText = 'Costly (> $3.50/hr)';
+      }
+    }
+
+    // FAQ Accordion
+    function toggleFaq(elem) {
+      elem.classList.toggle('open');
+    }
+
+    // Initialize calculator
+    updateCalculator();
+  </script>
+</body>
+</html>

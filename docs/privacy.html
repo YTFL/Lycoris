@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Lycoris</title>
+  <meta name="description" content="Privacy Policy for Lycoris — Learn how your gaming ledger data is protected, how Google Drive sync functions with restricted drive.file scope, and our zero-tracking philosophy.">
+  <meta name="theme-color" content="#090B0E">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-obsidian: #090B0E;
+      --bg-slate-dark: #0F1318;
+      --bg-slate-card: #161C24;
+      --bg-slate-elevated: #1F2631;
+      --border-slate: #2B3545;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+
+      --crimson-primary: #E53935;
+      --crimson-glow: #FF334B;
+      --crimson-light: #FF6B7D;
+      --crimson-dark: #B71C1C;
+
+      --text-primary: #F3F6FA;
+      --text-secondary: #9AA7B8;
+      --text-muted: #637286;
+
+      --tier-great: #10B981;
+      --tier-fair: #0284C7;
+      --tier-costly: #F59E0B;
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-obsidian);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+
+    body {
+      min-height: 100vh;
+      line-height: 1.7;
+      background: radial-gradient(circle at 50% 0%, rgba(229, 57, 53, 0.1), transparent 40%),
+                  var(--bg-obsidian);
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(9, 11, 14, 0.85);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--crimson-glow), var(--crimson-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(229, 57, 53, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    .btn-back {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      transition: all 0.2s ease;
+    }
+
+    .btn-back:hover {
+      color: #fff;
+      background: var(--bg-slate-elevated);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .policy-header {
+      padding: 64px 0 32px;
+      border-bottom: 1px solid var(--border-slate);
+      margin-bottom: 40px;
+    }
+
+    .policy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34D399;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Policy Content */
+    .policy-content {
+      padding-bottom: 100px;
+    }
+
+    .callout-box {
+      background: rgba(229, 57, 53, 0.08);
+      border: 1px solid rgba(229, 57, 53, 0.3);
+      border-radius: 14px;
+      padding: 24px;
+      margin: 28px 0;
+    }
+
+    .callout-box.info {
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.3);
+    }
+
+    .callout-box.success {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .callout-box h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .callout-box p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 0;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      border-left: 3px solid var(--crimson-primary);
+      padding-left: 12px;
+    }
+
+    h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      font-size: 1rem;
+    }
+
+    ul, ol {
+      color: var(--text-secondary);
+      margin-left: 24px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--crimson-light);
+      font-size: 0.9em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      background: var(--bg-slate-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 14px 18px;
+      text-align: left;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border-slate);
+    }
+
+    th {
+      background: var(--bg-slate-dark);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      color: var(--text-secondary);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-slate);
+      background: var(--bg-obsidian);
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav-inner">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C12 2 10.5 7 8 8C5.5 9 2 9 2 9C2 9 6 11 7 13C8 15 7 19 7 19C7 19 10 16 12 16C14 16 17 19 17 19C17 19 16 15 17 13C18 11 22 9 22 9C22 9 18.5 9 16 8C13.5 7 12 2 12 2Z"/>
+          </svg>
+        </div>
+        <span>Lycoris</span>
+      </a>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="terms.html" class="btn-back" style="background: transparent; border: none;">Terms & Conditions</a>
+        <a href="index.html" class="btn-back">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+          </svg>
+          Back to Homepage
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="policy-header">
+      <div class="policy-badge">Verified Zero-Telemetry</div>
+      <h1>Privacy Policy</h1>
+      <p class="last-updated">Last Updated & Effective Date: October 1, 2026</p>
+    </div>
+
+    <div class="policy-content">
+      <div class="callout-box success">
+        <h4>Our Fundamental Privacy Commitment</h4>
+        <p>Lycoris is built on an offline-first foundation. We do not require accounts, do not run analytical telemetry, and do not maintain any central servers or databases that collect your personal identity, gaming library, financial receipts, or gameplay hours. You maintain 100% data sovereignty.</p>
+      </div>
+
+      <h2>1. Overview & Data Architecture</h2>
+      <p>This Privacy Policy explains how <strong>Lycoris</strong> ("the Application", "we", "us", or "our"), an open-source personal gaming ledger and vault application, handles information. Unlike typical SaaS applications, Lycoris executes and stores its primary database exclusively on your physical client device.</p>
+
+      <h2>2. Information We Do NOT Collect</h2>
+      <p>We believe the best privacy guarantee is not having your data in the first place. Lycoris does NOT collect:</p>
+      <ul>
+        <li><strong>Personal Identifiers:</strong> We do not ask for or collect names, email addresses, phone numbers, or physical addresses.</li>
+        <li><strong>Account Credentials:</strong> We do not operate a user registration database or store passwords.</li>
+        <li><strong>Behavioral Telemetry:</strong> We do not track what screens you tap, how frequently you open the app, or what games you browse.</li>
+        <li><strong>Advertising Identifiers:</strong> The application contains zero commercial SDKs, zero ad networks, and does not read Google Advertising IDs (AAID/IDFA).</li>
+      </ul>
+
+      <h2>3. Data Processed Locally on Your Device</h2>
+      <p>When you use Lycoris to track your gaming library and calculate cost-per-hour return on investment (ROI), the following records are generated and stored exclusively within your device's sandboxed local storage using Hive NoSQL boxes (<code>games_vault</code> and <code>settings_box</code>):</p>
+      <ul>
+        <li>Game titles, IGDB IDs, and cover artwork URLs</li>
+        <li>Storefront ownership tags (Steam, PlayStation, Switch, Xbox, GOG, itch.io, Physical, etc.)</li>
+        <li>Purchase prices and selected display currencies</li>
+        <li>Itemized additional expenditures (DLCs, expansions, microtransactions, season passes)</li>
+        <li>Logged playtime durations (Hours, Minutes, Decimal Hours)</li>
+        <li>Completion statuses, ratings, personal audit notes, and custom manual entries</li>
+      </ul>
+      <p>This data remains strictly on your device unless you explicitly initiate a cloud backup or export a JSON file.</p>
+
+      <div class="callout-box info" id="google-drive">
+        <h4>Google Drive™ Integration & Limited Use Disclosure</h4>
+        <p>Lycoris offers an optional, user-initiated cloud backup feature powered by the official Google Drive API. Please read our exact permission boundaries below.</p>
+      </div>
+
+      <h2>4. Google Drive API Usage & OAuth Permissions</h2>
+      <p>If you choose to enable cloud backups in Lycoris Settings, the application will prompt you to authenticate with your Google Account via Google Sign-In.</p>
+
+      <h3>A. Exact OAuth 2.0 Scope Requested</h3>
+      <p>Lycoris requests only a single, restricted Google Drive scope:</p>
+      <p><code>https://www.googleapis.com/auth/drive.file</code> (DriveApi.driveFileScope)</p>
+
+      <h3>B. Strictly Limited Access Boundaries</h3>
+      <p>The <code>drive.file</code> scope grants Lycoris access <strong>ONLY</strong> to files and folders that have been created directly by the Lycoris application. Under this scope:</p>
+      <ul>
+        <li>Lycoris creates and accesses a dedicated folder named <code>Lycoris/</code> at the root of your Google Drive.</li>
+        <li>Inside this folder, it writes a single JSON backup document named <code>lycoris_vault_backup.json</code> containing your exported game ledger and delta timestamps.</li>
+        <li><strong>Zero Access to Personal Files:</strong> Lycoris has <strong>NO PERMISSION</strong> and <strong>NO TECHNICAL ABILITY</strong> to view, browse, search, read, download, modify, or delete any other files, documents, photos, spreadsheets, or folders in your Google Drive.</li>
+      </ul>
+
+      <h3>C. Google API Services User Data Policy Compliance</h3>
+      <p>
+        <strong>Lycoris's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">Google API Services User Data Policy</a>, including the Limited Use requirements.</strong>
+      </p>
+      <p>Specifically:</p>
+      <ol>
+        <li><strong>No Human Access:</strong> No humans (including developers of Lycoris) have access to your Google Drive files or backup data.</li>
+        <li><strong>No Third-Party Transfers:</strong> Google user data and backup payloads are never transferred, sold, or shared with third parties or external servers.</li>
+        <li><strong>No Advertising:</strong> Information accessed via Google APIs is never used to serve advertisements or personalize marketing.</li>
+        <li><strong>No AI/ML Training:</strong> Information accessed via Google APIs is never used to train generalized artificial intelligence (AI) or machine learning (ML) models.</li>
+      </ol>
+
+      <h2>5. Cloudflare Worker Proxy & IGDB Game Metadata</h2>
+      <p>To provide box art, release dates, and game summaries, Lycoris connects to the Internet Database of Video Games (IGDB v4) via a stateless Cloudflare Worker proxy:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Data Transmitted</th>
+            <th>Data Retained by Proxy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/games</code> Proxy</td>
+            <td>Search keywords (e.g. "Hollow Knight") and IGDB numeric IDs.</td>
+            <td><strong>None.</strong> The worker is completely stateless. It caches Twitch OAuth tokens server-side to prevent API rate limits, but does not log search queries, client IPs, or library contents.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>6. Data Portability, Erasure & User Control</h2>
+      <p>You have absolute control over your information at all times:</p>
+      <ul>
+        <li><strong>Export Data:</strong> You can generate a human-readable JSON export of your complete library or copy it directly to your device clipboard under <em>Settings &gt; Export Local JSON</em>.</li>
+        <li><strong>Local Deletion:</strong> You can erase all local data by tapping <em>Clear Vault</em> in the application or by clearing app storage in your Android/iOS operating system settings.</li>
+        <li><strong>Cloud Backup Deletion:</strong> You can delete your cloud backup at any time simply by opening Google Drive in any web browser or mobile app, locating the <code>Lycoris/</code> folder, and moving it to the Trash.</li>
+        <li><strong>Revoke Access:</strong> You can disconnect Lycoris and revoke all Google Drive permissions at any time via your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">Google Account Security Permissions</a> page.</li>
+      </ul>
+
+      <h2>7. Children's Privacy</h2>
+      <p>Lycoris does not knowingly collect or solicit personal information from children under the age of 13. Since the application does not collect personal data from any user, it is fully compliant with the Children's Online Privacy Protection Act (COPPA) and equivalent international regulations.</p>
+
+      <h2>8. Changes to This Privacy Policy</h2>
+      <p>We may update this Privacy Policy from time to time. Any modifications will be posted to this page with an updated "Last Updated" date. Continued use of the application following any changes constitutes acceptance of the revised terms.</p>
+
+      <h2>9. Contact & Inquiries</h2>
+      <p>If you have any questions, concerns, or requests regarding this Privacy Policy or the security practices of Lycoris, please contact us or open an issue on GitHub:</p>
+      <ul>
+        <li><strong>Project Repository:</strong> <a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">github.com/YTFL/Lycoris</a></li>
+        <li><strong>Issue Tracker:</strong> <a href="https://github.com/YTFL/Lycoris/issues" target="_blank" rel="noopener noreferrer" style="color: var(--crimson-light);">github.com/YTFL/Lycoris/issues</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div style="margin-bottom: 12px;">
+        <a href="index.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Home</a>
+        <a href="privacy.html" style="color: #fff; text-decoration: none; margin: 0 12px; font-weight: 600;">Privacy Policy</a>
+        <a href="terms.html" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">Terms of Service</a>
+        <a href="https://github.com/YTFL/Lycoris" target="_blank" rel="noopener noreferrer" style="color: var(--text-secondary); text-decoration: none; margin: 0 12px;">GitHub</a>
+      </div>
+      <div>&copy; 2026 Lycoris Open Source Project. All rights reserved.</div>
+    </div>
+  </footer>
+</body>
+</html>
