@@ -1,13 +1,25 @@
 /**
- * Lycoris — IGDB v4 Cloudflare Worker Proxy
+ * Lycoris — IGDB v4 Cloudflare Worker Proxy with 90-Day KV Edge Cache
  *
  * Securely proxies APICalypse queries to the IGDB v4 API while keeping
  * your Twitch Client-ID and Client-Secret safe on the server side.
  *
+ * Features:
+ * - 90-Day TTL KV Edge Caching: Caches queries in Cloudflare Workers KV for 90 days.
+ * - Non-blocking Background Writes: Uses ctx.waitUntil for zero added latency on cache misses.
+ * - Deterministic SHA-256 Hashing: Uses native Web Crypto to generate uniform cache keys.
+ * - Automatic Expiration: Cloudflare automatically purges expired entries after 90 days, protecting the 1GB quota.
+ *
  * Environment Secrets required in Cloudflare Worker:
  * - TWITCH_CLIENT_ID: Your Twitch Application Client ID
  * - TWITCH_CLIENT_SECRET: Your Twitch Application Client Secret
+ *
+ * KV Namespace Binding:
+ * - IGDB_CACHE: Bound to a Workers KV namespace
  */
+
+// 90 days in seconds = 90 * 24 * 60 * 60 = 7,776,000s
+const KV_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 // In-memory token cache for worker isolates
 let cachedToken = null;
@@ -19,6 +31,17 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, Client-ID',
   'Access-Control-Max-Age': '86400',
 };
+
+/**
+ * Generates a deterministic SHA-256 cache key using the standard Web Crypto API.
+ */
+async function generateCacheKey(endpoint, query) {
+  const text = `${endpoint.toLowerCase()}:${query.trim()}`;
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return `igdb:v1:${hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+}
 
 async function getTwitchAppToken(clientId, clientSecret) {
   const now = Date.now();
@@ -37,12 +60,12 @@ async function getTwitchAppToken(clientId, clientSecret) {
 
   const data = await response.json();
   cachedToken = data.access_token;
-  tokenExpiresAt = now + (data.expires_in * 1000);
+  tokenExpiresAt = now + data.expires_in * 1000;
   return cachedToken;
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -61,6 +84,8 @@ export default {
           service: 'Lycoris IGDB Cloudflare Proxy',
           timestamp: new Date().toISOString(),
           hasCredentials: Boolean(env.TWITCH_CLIENT_ID && env.TWITCH_CLIENT_SECRET),
+          hasKVCache: Boolean(env.IGDB_CACHE),
+          cacheTtl: '90 days',
         }),
         {
           status: 200,
@@ -97,10 +122,34 @@ export default {
     }
 
     const targetUrl = `https://api.igdb.com${igdbEndpoint}`;
+    const apicalypseQuery = request.method === 'POST' ? await request.text() : '';
 
+    // 1. Check Cloudflare Workers KV Cache
+    let cacheKey = null;
+    if (env.IGDB_CACHE) {
+      try {
+        cacheKey = await generateCacheKey(igdbEndpoint, apicalypseQuery);
+        const cachedResponse = await env.IGDB_CACHE.get(cacheKey);
+
+        if (cachedResponse !== null) {
+          return new Response(cachedResponse, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Lycoris-Cache': 'HIT',
+              'X-Lycoris-Cache-TTL': '90d',
+              ...CORS_HEADERS,
+            },
+          });
+        }
+      } catch (kvErr) {
+        console.error('[KV Cache Read Error]', kvErr);
+      }
+    }
+
+    // 2. Fetch fresh data from IGDB on Cache Miss
     try {
       const accessToken = await getTwitchAppToken(clientId, clientSecret);
-      const apicalypseQuery = request.method === 'POST' ? await request.text() : '';
 
       const igdbResponse = await fetch(targetUrl, {
         method: request.method,
@@ -114,10 +163,23 @@ export default {
 
       const responseBody = await igdbResponse.text();
 
+      // 3. Save to KV Cache in the background (Non-blocking with 90-day TTL)
+      if (env.IGDB_CACHE && igdbResponse.status === 200 && responseBody) {
+        if (!cacheKey) {
+          cacheKey = await generateCacheKey(igdbEndpoint, apicalypseQuery);
+        }
+        ctx.waitUntil(
+          env.IGDB_CACHE.put(cacheKey, responseBody, {
+            expirationTtl: KV_TTL_SECONDS,
+          }).catch((err) => console.error('[KV Cache Write Error]', err))
+        );
+      }
+
       return new Response(responseBody, {
         status: igdbResponse.status,
         headers: {
           'Content-Type': 'application/json',
+          'X-Lycoris-Cache': 'MISS',
           ...CORS_HEADERS,
         },
       });

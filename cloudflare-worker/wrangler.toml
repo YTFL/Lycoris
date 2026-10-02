@@ -7,3 +7,9 @@ compatibility_date = "2024-04-01"
 # wrangler secret put TWITCH_CLIENT_SECRET
 [vars]
 ENVIRONMENT = "production"
+
+# Cloudflare Workers KV Cache Binding
+[[kv_namespaces]]
+binding = "IGDB_CACHE"
+id = "3e798f3d6714475ebe197966bb779e54"
+preview_id = "ce3ce92d3a6947ec8870f84bb79d4668"
