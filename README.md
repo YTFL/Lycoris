@@ -1,4 +1,4 @@
-# 🌺 Lycoris — Personal Gaming Ledger & Vault
+# Lycoris — Personal Gaming Ledger
 
 <p align="center">
   <img src="assets/icons/icon_transparent.png" alt="Lycoris Logo" width="128" height="128">

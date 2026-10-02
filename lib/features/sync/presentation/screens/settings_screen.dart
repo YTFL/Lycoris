@@ -8,6 +8,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/services/exchange_rate_service.dart';
 import '../../../../core/utils/currency_helper.dart';
+import '../../../search/data/igdb_cache_service.dart';
 import '../../../search/data/igdb_service.dart';
 import '../../../tracker/presentation/controllers/vault_notifier.dart';
 import '../controllers/settings_notifier.dart';
@@ -22,11 +23,19 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late final TextEditingController _proxyUrlController;
   late final TextEditingController _clientIdController;
-  late final TextEditingController _bearerTokenController;
+  late final TextEditingController _clientSecretController;
 
   bool _isTestingConnection = false;
   String? _testConnectionResult;
   bool _isSyncingRates = false;
+  bool _showDirectCredentials = false;
+  bool _showTwitchTutorial = false;
+  bool _isEditingSecret = false;
+
+  int _cacheSizeBytes = 0;
+  int _cachedGamesCount = 0;
+  int _cachedQueriesCount = 0;
+  bool _isClearingCache = false;
 
   @override
   void initState() {
@@ -36,15 +45,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       text: settings.workerProxyUrl.isNotEmpty ? settings.workerProxyUrl : ApiConstants.igdbProxyUrl,
     );
     _clientIdController = TextEditingController(text: settings.twitchClientId);
-    _bearerTokenController = TextEditingController(text: settings.twitchBearerToken);
+    _clientSecretController = TextEditingController();
+    _showDirectCredentials = settings.twitchClientId.isNotEmpty || settings.hasTwitchClientSecret;
+    _loadCacheStats();
   }
 
   @override
   void dispose() {
     _proxyUrlController.dispose();
     _clientIdController.dispose();
-    _bearerTokenController.dispose();
+    _clientSecretController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCacheStats() async {
+    final cacheService = ref.read(igdbCacheServiceProvider);
+    final bytes = await cacheService.getSizeBytes();
+    if (mounted) {
+      setState(() {
+        _cacheSizeBytes = bytes;
+        _cachedGamesCount = cacheService.cachedGamesCount;
+        _cachedQueriesCount = cacheService.cachedQueriesCount;
+      });
+    }
   }
 
   Future<void> _testConnection() async {
@@ -53,15 +76,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _testConnectionResult = null;
     });
 
-    final service = IGDBService(workerProxyUrl: _proxyUrlController.text.trim());
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    final secret = _clientSecretController.text.trim().isNotEmpty
+        ? _clientSecretController.text.trim()
+        : settingsRepo.getDecryptedTwitchClientSecret();
+
+    final service = IGDBService(
+      workerProxyUrl: _proxyUrlController.text.trim(),
+      twitchClientId: _clientIdController.text.trim(),
+      twitchClientSecret: secret,
+      cacheService: ref.read(igdbCacheServiceProvider),
+    );
     final success = await service.testConnection();
 
     if (mounted) {
       setState(() {
         _isTestingConnection = false;
         _testConnectionResult = success
-            ? 'Connection successful! IGDB v4 proxy is operational.'
-            : 'Connection failed. Verify worker endpoint URL or internet access.';
+            ? (service.hasDirectTwitchCredentials
+                ? 'Connection successful! Direct Twitch OAuth & IGDB v4 operational.'
+                : 'Connection successful! Cloudflare Worker proxy is operational.')
+            : 'Connection failed. Verify endpoint URL, Twitch credentials, or internet access.';
       });
     }
   }
@@ -72,16 +107,138 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await notifier.updateWorkerProxyUrl(proxyUrl);
     await notifier.updateTwitchCredentials(
       clientId: _clientIdController.text.trim(),
-      bearerToken: _bearerTokenController.text.trim(),
+      clientSecret: _clientSecretController.text.trim().isNotEmpty
+          ? _clientSecretController.text.trim()
+          : null,
     );
+    _clientSecretController.clear();
 
     if (mounted) {
+      setState(() {
+        _isEditingSecret = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Settings saved successfully!'),
+          content: Text('API & Credentials saved successfully!'),
           backgroundColor: LycorisColors.success,
         ),
       );
+    }
+  }
+
+  Future<void> _resetProxyToDefault() async {
+    final notifier = ref.read(settingsNotifierProvider.notifier);
+    await notifier.resetWorkerProxyUrl();
+    _proxyUrlController.text = ApiConstants.igdbProxyUrl;
+    if (mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Proxy URL reset to default.'),
+          backgroundColor: LycorisColors.info,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmClearCache() async {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 28),
+            const SizedBox(width: 10),
+            const Text('Clear Metadata Cache?'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Clearing the local metadata cache will permanently delete all stored game details and search indexes.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer.withAlpha(40),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: colorScheme.error.withAlpha(90)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '⚠️ Warning:',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '• Future searches will need to query IGDB over the network, causing slower searches.\n'
+                    '• Sending frequent queries without cache may trigger IGDB rate limits (Too Many Requests / HTTP 429).\n'
+                    '• Offline search for uncached titles will be unavailable.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Are you sure you want to proceed?',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Clear Cache'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isClearingCache = true);
+      await ref.read(igdbCacheServiceProvider).clearCache();
+      await _loadCacheStats();
+      if (mounted) {
+        setState(() => _isClearingCache = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Metadata cache successfully cleared.'),
+            backgroundColor: LycorisColors.success,
+          ),
+        );
+      }
     }
   }
 
@@ -204,10 +361,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           // 1. Cloudflare Worker Proxy & IGDB v4
+          // 1. Cloudflare Worker Proxy & IGDB v4
           _buildCard(
             context: context,
-            title: 'IGDB Metadata Proxy',
-            subtitle: 'Secure Cloudflare Worker proxy forwarding APICalypse queries to IGDB v4.',
+            title: 'IGDB Metadata Proxy & API',
+            subtitle: 'Secure Cloudflare Worker proxy forwarding APICalypse queries to IGDB v4, or your own direct Twitch API.',
             icon: Icons.cloud_outlined,
             children: [
               TextField(
@@ -220,6 +378,224 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.link_rounded,
                 ),
               ),
+              if (_proxyUrlController.text.trim() != ApiConstants.igdbProxyUrl) ...[
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                    icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                    label: const Text('Reset to Default Proxy'),
+                    onPressed: _resetProxyToDefault,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+
+              // Direct Twitch Credentials Accordion
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withAlpha(50),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorScheme.outlineVariant.withAlpha(50)),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: Icon(
+                        Icons.vpn_key_rounded,
+                        color: _showDirectCredentials ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                      title: Text(
+                        'Direct Twitch Developer API',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        settings.hasTwitchClientSecret
+                            ? 'Custom credentials configured (Write-only protected)'
+                            : 'Host your own credentials to bypass shared worker limits',
+                        style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                      trailing: Switch(
+                        value: _showDirectCredentials,
+                        onChanged: (val) {
+                          setState(() {
+                            _showDirectCredentials = val;
+                          });
+                        },
+                      ),
+                    ),
+                    if (_showDirectCredentials) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Divider(height: 1),
+                            const SizedBox(height: 10),
+
+                            // Tutorial Expander
+                            InkWell(
+                              onTap: () => setState(() => _showTwitchTutorial = !_showTwitchTutorial),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer.withAlpha(50),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: colorScheme.primary.withAlpha(60)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.school_rounded, size: 18, color: colorScheme.primary),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'How to get Twitch Client ID & Secret',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      _showTwitchTutorial ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            if (_showTwitchTutorial) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest.withAlpha(80),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '1. Go to dev.twitch.tv/console and log in.\n'
+                                      '2. Click "Register Your Application".\n'
+                                      '3. Set Name to "Lycoris", OAuth Redirect to "http://localhost", and Category to "Application Integration".\n'
+                                      '4. Click "Create", then copy your Client ID.\n'
+                                      '5. Click "New Secret" to generate your Client Secret.\n'
+                                      '6. Paste both below. Your secret is encrypted on-device and write-only.',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        height: 1.45,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _clientIdController,
+                              style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+                              decoration: _inputDecoration(
+                                context,
+                                label: 'Twitch Client ID',
+                                hint: 'e.g. 9y5k10abcdef...',
+                                icon: Icons.badge_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Write-Only Secret Field
+                            if (settings.hasTwitchClientSecret && !_isEditingSecret) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: colorScheme.outlineVariant.withAlpha(80)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.lock_rounded, size: 18, color: LycorisColors.success),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Client Secret: ••••••••••••••••',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: colorScheme.onSurface,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Protected & encrypted on-device (Write-only)',
+                                            style: theme.textTheme.bodySmall?.copyWith(
+                                              color: colorScheme.onSurfaceVariant,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => setState(() => _isEditingSecret = true),
+                                      child: const Text('Change'),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                      tooltip: 'Remove Secret',
+                                      onPressed: () async {
+                                        await ref.read(settingsNotifierProvider.notifier).clearTwitchCredentials();
+                                        _clientIdController.clear();
+                                        _clientSecretController.clear();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              TextField(
+                                controller: _clientSecretController,
+                                obscureText: true,
+                                style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+                                decoration: _inputDecoration(
+                                  context,
+                                  label: 'Twitch Client Secret',
+                                  hint: 'Paste new Client Secret...',
+                                  icon: Icons.password_rounded,
+                                ),
+                              ),
+                              if (settings.hasTwitchClientSecret) ...[
+                                const SizedBox(height: 4),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () => setState(() => _isEditingSecret = false),
+                                    child: const Text('Cancel changing secret'),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 14),
               Wrap(
                 spacing: 12,
@@ -241,7 +617,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   FilledButton.icon(
                     icon: const Icon(Icons.save_rounded, size: 18),
-                    label: const Text('Save Proxy'),
+                    label: const Text('Save Settings'),
                     onPressed: _saveSettings,
                   ),
                 ],
@@ -288,6 +664,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ],
+            ],
+          ),
+
+          const SizedBox(height: 14),
+
+          // Metadata Cache Management Card
+          _buildCard(
+            context: context,
+            title: 'Game Metadata Cache',
+            subtitle: 'Permanent client-side storage for instant offline searches and zero repeated network requests.',
+            icon: Icons.storage_rounded,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest.withAlpha(80),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Current Cache Size',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            IGDBCacheService.formatBytes(_cacheSizeBytes),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$_cachedGamesCount games · $_cachedQueriesCount searches',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colorScheme.error,
+                      side: BorderSide(color: colorScheme.error.withAlpha(120)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    icon: _isClearingCache
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: colorScheme.error,
+                            ),
+                          )
+                        : const Icon(Icons.delete_sweep_rounded, size: 18),
+                    label: const Text('Clear Cache'),
+                    onPressed: _isClearingCache ? null : _confirmClearCache,
+                  ),
+                ],
+              ),
             ],
           ),
 

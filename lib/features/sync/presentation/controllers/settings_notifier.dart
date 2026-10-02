@@ -1,13 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/hive_registrar.dart';
+import '../../../search/data/igdb_cache_service.dart';
 import '../../../search/data/igdb_service.dart';
 import '../../../tracker/presentation/controllers/vault_notifier.dart';
 import '../../data/drive_vault_service.dart';
 import '../../data/settings_repository.dart';
 export 'exchange_rates_notifier.dart';
 
+final igdbCacheServiceProvider = Provider<IGDBCacheService>((ref) {
+  return IGDBCacheService();
+});
+
 final igdbServiceProvider = Provider<IGDBService>((ref) {
-  return IGDBService();
+  final settingsRepo = ref.watch(settingsRepositoryProvider);
+  final cacheService = ref.watch(igdbCacheServiceProvider);
+  return IGDBService(
+    workerProxyUrl: settingsRepo.workerProxyUrl,
+    twitchClientId: settingsRepo.twitchClientId,
+    twitchClientSecret: settingsRepo.getDecryptedTwitchClientSecret(),
+    cacheService: cacheService,
+  );
 });
 
 final driveVaultServiceProvider = Provider<DriveVaultService>((ref) {
@@ -18,6 +30,7 @@ class SettingsState {
   final String workerProxyUrl;
   final String twitchClientId;
   final String twitchBearerToken;
+  final bool hasTwitchClientSecret;
   final String primaryCurrency;
   final DateTime? lastSyncedAt;
   final bool isSyncing;
@@ -27,6 +40,7 @@ class SettingsState {
     required this.workerProxyUrl,
     required this.twitchClientId,
     required this.twitchBearerToken,
+    this.hasTwitchClientSecret = false,
     required this.primaryCurrency,
     this.lastSyncedAt,
     this.isSyncing = false,
@@ -37,6 +51,7 @@ class SettingsState {
     String? workerProxyUrl,
     String? twitchClientId,
     String? twitchBearerToken,
+    bool? hasTwitchClientSecret,
     String? primaryCurrency,
     DateTime? lastSyncedAt,
     bool? isSyncing,
@@ -46,6 +61,7 @@ class SettingsState {
       workerProxyUrl: workerProxyUrl ?? this.workerProxyUrl,
       twitchClientId: twitchClientId ?? this.twitchClientId,
       twitchBearerToken: twitchBearerToken ?? this.twitchBearerToken,
+      hasTwitchClientSecret: hasTwitchClientSecret ?? this.hasTwitchClientSecret,
       primaryCurrency: primaryCurrency ?? this.primaryCurrency,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       isSyncing: isSyncing ?? this.isSyncing,
@@ -70,24 +86,41 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           workerProxyUrl: _settingsRepo.workerProxyUrl,
           twitchClientId: _settingsRepo.twitchClientId,
           twitchBearerToken: _settingsRepo.twitchBearerToken,
+          hasTwitchClientSecret: _settingsRepo.hasTwitchClientSecret,
           primaryCurrency: _settingsRepo.primaryCurrency,
           lastSyncedAt: _settingsRepo.lastSyncedAt,
         ));
 
   Future<void> updateWorkerProxyUrl(String url) async {
     await _settingsRepo.setWorkerProxyUrl(url);
-    state = state.copyWith(workerProxyUrl: url);
+    state = state.copyWith(workerProxyUrl: _settingsRepo.workerProxyUrl);
+  }
+
+  Future<void> resetWorkerProxyUrl() async {
+    await _settingsRepo.resetWorkerProxyUrl();
+    state = state.copyWith(workerProxyUrl: _settingsRepo.workerProxyUrl);
   }
 
   Future<void> updateTwitchCredentials({
     required String clientId,
-    required String bearerToken,
+    String? clientSecret,
   }) async {
     await _settingsRepo.setTwitchClientId(clientId);
-    await _settingsRepo.setTwitchBearerToken(bearerToken);
+    if (clientSecret != null && clientSecret.trim().isNotEmpty) {
+      await _settingsRepo.setTwitchClientSecret(clientSecret.trim());
+    }
     state = state.copyWith(
-      twitchClientId: clientId,
-      twitchBearerToken: bearerToken,
+      twitchClientId: _settingsRepo.twitchClientId,
+      hasTwitchClientSecret: _settingsRepo.hasTwitchClientSecret,
+    );
+  }
+
+  Future<void> clearTwitchCredentials() async {
+    await _settingsRepo.clearTwitchCredentials();
+    state = state.copyWith(
+      twitchClientId: '',
+      twitchBearerToken: '',
+      hasTwitchClientSecret: false,
     );
   }
 
