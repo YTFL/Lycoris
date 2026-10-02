@@ -10,7 +10,7 @@ import '../../../sync/presentation/controllers/settings_notifier.dart';
 import '../../domain/models/additional_expense.dart';
 import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
-import '../controllers/vault_notifier.dart';
+import '../controllers/library_notifier.dart';
 import '../widgets/edit_game_modal.dart';
 import '../widgets/playtime_editor_dialog.dart';
 import '../widgets/roi_badge.dart';
@@ -39,7 +39,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
   }
 
   GameEntry? _getGame() {
-    final allGames = ref.watch(vaultNotifierProvider).allGames;
+    final allGames = ref.watch(libraryNotifierProvider).allGames;
     final index = allGames.indexWhere((g) => g.id == _currentGameId);
     return index != -1 ? allGames[index] : null;
   }
@@ -98,7 +98,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                   amount: amount,
                   date: DateTime.now(),
                 );
-                ref.read(vaultNotifierProvider.notifier).addExpense(game.id, expense);
+                ref.read(libraryNotifierProvider.notifier).addExpense(game.id, expense);
                 Navigator.pop(ctx);
               }
             },
@@ -140,7 +140,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           ),
           FilledButton(
             onPressed: () {
-              ref.read(vaultNotifierProvider.notifier).updateNotes(game.id, notesController.text.trim());
+              ref.read(libraryNotifierProvider.notifier).updateNotes(game.id, notesController.text.trim());
               Navigator.pop(ctx);
             },
             child: const Text('Save Notes'),
@@ -193,7 +193,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                     ),
                     trailing: isCurrent ? Icon(Icons.check_rounded, color: colorScheme.primary) : null,
                     onTap: () {
-                      ref.read(vaultNotifierProvider.notifier).updateStatus(game.id, status);
+                      ref.read(libraryNotifierProvider.notifier).updateStatus(game.id, status);
                       Navigator.pop(ctx);
                     },
                   );
@@ -266,7 +266,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               ),
               FilledButton(
                 onPressed: () {
-                  ref.read(vaultNotifierProvider.notifier).updateRating(game.id, currentRating);
+                  ref.read(libraryNotifierProvider.notifier).updateRating(game.id, currentRating);
                   Navigator.pop(ctx);
                 },
                 child: const Text('Save Score'),
@@ -369,7 +369,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                   );
 
                   if (confirm == true && context.mounted) {
-                    await ref.read(vaultNotifierProvider.notifier).deleteGame(game.id);
+                    await ref.read(libraryNotifierProvider.notifier).deleteGame(game.id);
                     if (context.mounted) Navigator.pop(context);
                   }
                 },
@@ -688,7 +688,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                   initialMinutes: game.totalMinutesPlayed,
                   gameTitle: game.title,
                   onSave: (newMinutes) {
-                    ref.read(vaultNotifierProvider.notifier).updatePlaytime(game.id, newMinutes);
+                    ref.read(libraryNotifierProvider.notifier).updatePlaytime(game.id, newMinutes);
                   },
                 ),
               );
@@ -783,7 +783,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                       icon: const Icon(Icons.close, size: 16),
                       color: colorScheme.onSurfaceVariant,
                       onPressed: () {
-                        ref.read(vaultNotifierProvider.notifier).removeExpense(game.id, expense.id);
+                        ref.read(libraryNotifierProvider.notifier).removeExpense(game.id, expense.id);
                       },
                     ),
                   ],

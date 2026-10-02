@@ -4,7 +4,7 @@ import '../../../../core/utils/currency_helper.dart';
 import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
-import '../controllers/vault_notifier.dart';
+import '../controllers/library_notifier.dart';
 
 class EditGameModal extends ConsumerStatefulWidget {
   final GameEntry game;
@@ -72,7 +72,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
             ? 'custom_${widget.game.id.split('_')[1]}_${_selectedStorefront.name}'
             : GameEntry.generateId(igdbId: 0, storefront: _selectedStorefront);
 
-    await ref.read(vaultNotifierProvider.notifier).updateGameDetails(
+    await ref.read(libraryNotifierProvider.notifier).updateGameDetails(
       originalGame: widget.game,
       newTitle: title,
       newStorefront: _selectedStorefront,

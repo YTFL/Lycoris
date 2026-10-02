@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lycoris — Personal Gaming Ledger & Vault</title>
-  <meta name="description" content="Offline-first personal gaming ledger and vault. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up securely to your own private Google Drive.">
+  <title>Lycoris — Personal Gaming Library & ROI Tracker</title>
+  <meta name="description" content="Offline-first personal gaming library and financial ROI tracker. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up securely to your own private Google Drive.">
   <meta name="theme-color" content="#090B0E">
 
   <!-- Open Graph / Meta -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Lycoris — Personal Gaming Ledger & Vault">
+  <meta property="og:title" content="Lycoris — Personal Gaming Library & ROI Tracker">
   <meta property="og:description" content="Track multi-storefront ownership, itemize DLC spend, and calculate real cost-per-hour ROI. 100% offline-first with user-owned Google Drive backup.">
 
   <!-- Google Fonts -->
@@ -258,6 +258,7 @@
     .hero-title span.highlight {
       background: linear-gradient(135deg, #FFFFFF 30%, var(--crimson-light) 100%);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
@@ -596,6 +597,7 @@
       background: var(--bg-slate-dark);
       outline: none;
       -webkit-appearance: none;
+      appearance: none;
     }
 
     .calc-slider::-webkit-slider-thumb {
@@ -1034,7 +1036,7 @@
 
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
-        <li><a href="#modes">Shelf & Ledger</a></li>
+        <li><a href="#modes">Shelf & Table</a></li>
         <li><a href="#roi">ROI Calculator</a></li>
         <li><a href="#security">Google Drive Sync</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -1059,7 +1061,7 @@
     <div class="container">
       <div class="hero-badge">
         <span class="dot"></span>
-        v1.0.0 • Offline-First Personal Gaming Ledger & Vault
+        v1.0.0 • Offline-First Personal Gaming Library & Tracker
       </div>
 
       <h1 class="hero-title">
@@ -1068,7 +1070,7 @@
       </h1>
 
       <p class="hero-subtitle">
-        An offline-first vault and financial ledger for your gaming library. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up seamlessly to your own private Google Drive.
+        An offline-first library and financial ROI tracker for your gaming collection. Track multi-storefront ownership, itemize DLC investments, and calculate real cost-per-hour ROI—backed up seamlessly to your own private Google Drive.
       </p>
 
       <div class="hero-cta">
@@ -1112,7 +1114,7 @@
             </button>
             <button class="mode-btn" id="btn-ledger" onclick="switchMode('ledger')">
               <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-              The Ledger
+              Table View
             </button>
           </div>
         </div>
@@ -1353,7 +1355,7 @@
           <div class="bento-icon">
             <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
           </div>
-          <h3 class="bento-title">Offline-First Hive Vault</h3>
+          <h3 class="bento-title">Offline-First Hive Storage</h3>
           <p class="bento-desc">Zero loading spinners. Your games, playtime, and itemized receipts live in a super-fast local Hive NoSQL database directly on your phone storage.</p>
         </div>
 
@@ -1381,7 +1383,7 @@
             <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
           </div>
           <h3 class="bento-title">Itemized DLC & Microtransactions</h3>
-          <p class="bento-desc">A complete financial ledger for Season Passes, expansions, and in-game skins. Instantly recalculates true cost-per-hour as your spending evolves.</p>
+          <p class="bento-desc">A complete breakdown for Season Passes, expansions, and in-game skins. Instantly recalculates true cost-per-hour as your spending evolves.</p>
         </div>
 
         <!-- 5 -->
@@ -1499,7 +1501,7 @@
             <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
           </div>
           <div class="faq-answer">
-            <p>No! Lycoris does not require any account creation. You can use 100% of the ledger, tracker, and analytics features completely offline. Google Drive sync is completely optional for users who want effortless cloud backups across multiple devices.</p>
+            <p>No! Lycoris does not require any account creation. You can use 100% of the library, tracker, and analytics features completely offline. Google Drive sync is completely optional for users who want effortless cloud backups across multiple devices.</p>
           </div>
         </div>
 
@@ -1539,7 +1541,7 @@
   <!-- CTA Banner -->
   <section class="container" id="download">
     <div class="cta-banner">
-      <h2>Take Ownership of Your Gaming Ledger</h2>
+      <h2>Take Ownership of Your Gaming Library</h2>
       <p>Download the free, open-source Android APK today and experience true data sovereignty.</p>
       <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
         <a href="https://github.com/YTFL/Lycoris/releases" class="btn btn-primary" style="padding: 14px 28px; font-size: 1.05rem;">
@@ -1566,7 +1568,7 @@
             <span style="font-weight: 700; color: #fff; font-size: 1.1rem;">Lycoris</span>
           </div>
           <p style="font-size: 0.9rem; line-height: 1.6; max-width: 320px;">
-            An offline-first personal gaming ledger and vault. Built with Flutter, Riverpod, Hive, and Google Drive sync.
+            An offline-first personal gaming library and financial ROI tracker. Built with Flutter, Riverpod, Hive, and Google Drive sync.
           </p>
         </div>
 
@@ -1574,7 +1576,7 @@
           <h5>Navigation</h5>
           <ul>
             <li><a href="#features">Features</a></li>
-            <li><a href="#modes">Shelf & Ledger</a></li>
+            <li><a href="#modes">Shelf & Table</a></li>
             <li><a href="#roi">ROI Calculator</a></li>
             <li><a href="#security">Architecture</a></li>
             <li><a href="#faq">FAQ</a></li>

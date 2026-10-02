@@ -8,7 +8,7 @@ import '../../../sync/presentation/controllers/settings_notifier.dart';
 import '../../../tracker/domain/models/game_entry.dart';
 import '../../../tracker/domain/models/game_status.dart';
 import '../../../tracker/domain/models/storefront.dart';
-import '../../../tracker/presentation/controllers/vault_notifier.dart';
+import '../../../tracker/presentation/controllers/library_notifier.dart';
 
 class AnalyticsDashboard extends ConsumerStatefulWidget {
   const AnalyticsDashboard({super.key});
@@ -32,7 +32,7 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final games = ref.watch(vaultNotifierProvider).allGames;
+    final games = ref.watch(libraryNotifierProvider).allGames;
     final primaryCurrency = ref.watch(settingsNotifierProvider).primaryCurrency;
     final exchangeRates = ref.watch(exchangeRatesNotifierProvider);
 

@@ -4,9 +4,9 @@ import 'package:lycoris/core/utils/value_metric_evaluator.dart';
 import 'package:lycoris/features/tracker/domain/models/game_entry.dart';
 import 'package:lycoris/features/tracker/domain/models/game_status.dart';
 import 'package:lycoris/features/tracker/domain/models/storefront.dart';
-import 'package:lycoris/features/tracker/presentation/controllers/vault_state.dart';
+import 'package:lycoris/features/tracker/presentation/controllers/library_state.dart';
 import 'package:lycoris/features/tracker/presentation/widgets/game_cover_card.dart';
-import 'package:lycoris/features/tracker/presentation/widgets/game_ledger_row.dart';
+import 'package:lycoris/features/tracker/presentation/widgets/game_list_row.dart';
 import 'package:lycoris/features/tracker/presentation/widgets/roi_badge.dart';
 import 'package:lycoris/features/tracker/presentation/widgets/status_badge.dart';
 import 'package:lycoris/features/tracker/presentation/widgets/storefront_badge.dart';
@@ -55,7 +55,7 @@ void main() {
     expect(find.text('Mastered (100%)'), findsOneWidget);
   });
 
-  testWidgets('GameLedgerRow displays minimal title, playtime, and rating', (WidgetTester tester) async {
+  testWidgets('GameListRow displays minimal title, playtime, and rating', (WidgetTester tester) async {
     final game = GameEntry(
       id: 'test_game',
       igdbId: 101,
@@ -74,7 +74,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: GameLedgerRow(
+          body: GameListRow(
             game: game,
             onTap: () {},
           ),

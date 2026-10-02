@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../analytics/presentation/screens/analytics_dashboard.dart';
 import '../../../sync/presentation/screens/settings_screen.dart';
-import '../../../tracker/presentation/screens/vault_screen.dart';
+import '../../../tracker/presentation/screens/library_screen.dart';
 import '../../../tracker/presentation/widgets/intake_modal.dart';
 
 import '../controllers/home_nav_provider.dart';
@@ -16,7 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final List<Widget> _destinations = const [
-    VaultScreen(),
+    LibraryScreen(),
     AnalyticsDashboard(),
     SettingsScreen(),
   ];

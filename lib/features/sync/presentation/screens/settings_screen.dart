@@ -10,7 +10,7 @@ import '../../../../core/services/exchange_rate_service.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../../search/data/igdb_cache_service.dart';
 import '../../../search/data/igdb_service.dart';
-import '../../../tracker/presentation/controllers/vault_notifier.dart';
+import '../../../tracker/presentation/controllers/library_notifier.dart';
 import '../controllers/settings_notifier.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -1008,7 +1008,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   );
 
                   if (confirm == true) {
-                    await ref.read(vaultNotifierProvider.notifier).clearAll();
+                    await ref.read(libraryNotifierProvider.notifier).clearAll();
                   }
                 },
               ),
@@ -1037,7 +1037,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Offline-first gaming ledger & investment ROI tracker',
+                  'Offline-first gaming library & investment ROI tracker',
                   style: theme.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant.withAlpha(160)),
                 ),
               ],

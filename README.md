@@ -1,4 +1,4 @@
-# Lycoris — Personal Gaming Ledger
+# 🌺 Lycoris — Personal Gaming Library & ROI Tracker
 
 <p align="center">
   <img src="assets/icons/icon_transparent.png" alt="Lycoris Logo" width="128" height="128">
@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Know what your playtime is actually worth.</strong><br>
-  An offline-first personal gaming ledger, backlog vault, and financial ROI tracker for sovereign gamers.
+  An offline-first personal gaming library, backlog manager, and financial ROI tracker for sovereign gamers.
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@ Modern gaming is fragmented. We own games across **Steam, Nintendo Switch, PlayS
 
 Most existing game trackers force you to create cloud accounts, load sluggish web views, or sell your gaming habits to advertising networks. 
 
-**Lycoris changes that.** It is a fast, offline-first personal vault and financial ledger that tracks your multi-storefront ownership, itemizes every dollar spent on DLCs, and automatically calculates your real **cost-per-hour return on investment (ROI)**—all backed up safely to your own personal Google Drive.
+**Lycoris changes that.** It is a fast, offline-first personal library and tracker that organizes your multi-storefront ownership, itemizes every dollar spent on DLCs, and automatically calculates your real **cost-per-hour return on investment (ROI)**—all backed up safely to your own personal Google Drive.
 
 ---
 
@@ -36,7 +36,7 @@ Most existing game trackers force you to create cloud accounts, load sluggish we
 
 ### 🌺 Dual Display Modes
 - **The Shelf (Visual Box Art Grid)**: Responsive 3:4 game cover art cards with dynamic gradient vignettes and glowing ROI tier badges.
-- **The Ledger (Tabular Audit View)**: Dense, high-information table for quickly reviewing storefronts, logged hours, itemized costs, ratings, and $/hour efficiency.
+- **The List View (Clean Compact View)**: Dense, high-information table for quickly reviewing storefronts, logged hours, itemized costs, ratings, and $/hour efficiency.
 
 ### 💎 Financial ROI & Value Tier Engine
 Every game calculates an effective cost-per-hour (`Total Investment ÷ Total Hours`):
@@ -46,7 +46,7 @@ Every game calculates an effective cost-per-hour (`Total Investment ÷ Total Hou
 - 🔵 **Fair Value (≤ $3.50/hr)**: Healthy return on investment, typical of solid single-player campaigns.
 - 🟡 **Costly (> $3.50/hr)**: High initial investment or early-abandoned titles.
 
-### 🛒 Itemized DLC & Microtransaction Ledger
+### 🛒 Itemized DLC & Microtransaction Tracking
 Track season passes, cosmetic bundles, story expansions, and microtransactions independently. Lycoris automatically recalculates your game's total cost and real-time cost/hour as your spending evolves.
 
 ### 🎮 Multi-Storefront Composite Ownership
@@ -75,7 +75,7 @@ Lycoris is engineered on the principle that **you own your data**:
 
 | Storage Layer | Location | Details |
 | :--- | :--- | :--- |
-| **Local Device Vault** | On your phone (`Hive NoSQL`) | 100% offline. Instant loading. No account creation required. |
+| **Local Device Storage** | On your phone (`Hive NoSQL`) | 100% offline. Instant loading. No account creation required. |
 | **Google Drive Cloud Sync** | Your Personal Google Drive | Opt-in backup using restricted `drive.file` scope. |
 | **IGDB Metadata Proxy** | Cloudflare Worker Edge | Proxies game covers and search queries anonymously. Zero logging. |
 
@@ -156,7 +156,7 @@ All unit and widget tests verify time normalization, currency conversions, compo
 
 ## 📄 Documentation & Legal
 
-- 🌐 **[Product Website](docs/index.html)** — Interactive showcase, Shelf vs. Ledger preview, and live ROI calculator.
+- 🌐 **[Product Website](docs/index.html)** — Interactive showcase, Shelf vs. List view preview, and live ROI calculator.
 - 🔒 **[Privacy Policy](docs/privacy.html)** — Detailed Google Drive Limited Use disclosure and data handling policies.
 - ⚖️ **[Terms of Service](docs/terms.html)** — Open source license and usage terms.
 

@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/storage/hive_registrar.dart';
 import '../../../search/data/igdb_cache_service.dart';
 import '../../../search/data/igdb_service.dart';
-import '../../../tracker/presentation/controllers/vault_notifier.dart';
-import '../../data/drive_vault_service.dart';
+import '../../../tracker/presentation/controllers/library_notifier.dart';
+import '../../data/drive_sync_service.dart';
 import '../../data/settings_repository.dart';
 export 'exchange_rates_notifier.dart';
 
@@ -22,9 +22,12 @@ final igdbServiceProvider = Provider<IGDBService>((ref) {
   );
 });
 
-final driveVaultServiceProvider = Provider<DriveVaultService>((ref) {
-  return DriveVaultService();
+final driveSyncServiceProvider = Provider<DriveSyncService>((ref) {
+  return DriveSyncService();
 });
+
+// Backward compatibility alias
+final driveVaultServiceProvider = driveSyncServiceProvider;
 
 class SettingsState {
   final String workerProxyUrl;
@@ -73,13 +76,13 @@ class SettingsState {
 final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
   final settingsRepo = ref.watch(settingsRepositoryProvider);
-  final driveService = ref.watch(driveVaultServiceProvider);
+  final driveService = ref.watch(driveSyncServiceProvider);
   return SettingsNotifier(settingsRepo, driveService);
 });
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
   final SettingsRepository _settingsRepo;
-  final DriveVaultService _driveService;
+  final DriveSyncService _driveService;
 
   SettingsNotifier(this._settingsRepo, this._driveService)
       : super(SettingsState(

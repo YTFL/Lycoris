@@ -10,7 +10,7 @@ import '../../../sync/presentation/controllers/settings_notifier.dart';
 import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
-import '../controllers/vault_notifier.dart';
+import '../controllers/library_notifier.dart';
 
 enum PlayTimeInputMode {
   hoursAndMinutes('Hours & Mins'),
@@ -136,7 +136,7 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
       updatedAt: DateTime.now(),
     );
 
-    ref.read(vaultNotifierProvider.notifier).saveGame(entry);
+    ref.read(libraryNotifierProvider.notifier).saveGame(entry);
     Navigator.pop(context);
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -241,7 +241,7 @@ class _IntakeModalState extends ConsumerState<IntakeModal> {
                 builder: (ctx) => ManualGameModal(
                   defaultCurrency: _selectedCurrency,
                   onSave: (game) {
-                    ref.read(vaultNotifierProvider.notifier).saveGame(game);
+                    ref.read(libraryNotifierProvider.notifier).saveGame(game);
                   },
                 ),
               );
