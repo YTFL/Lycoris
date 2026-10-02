@@ -52,81 +52,94 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: colorScheme.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Filter by Platform',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filter by Platform',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      if (libraryState.storefrontFilter != null)
-                        TextButton(
-                          onPressed: () {
+                        if (libraryState.storefrontFilter != null)
+                          TextButton(
+                            onPressed: () {
+                              notifier.setStorefrontFilter(null);
+                              Navigator.pop(ctx);
+                            },
+                            child: const Text('Reset'),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            Icons.devices_other_rounded,
+                            color: libraryState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                          ),
+                          title: Text(
+                            'All Platforms',
+                            style: TextStyle(
+                              fontWeight: libraryState.storefrontFilter == null ? FontWeight.w800 : FontWeight.w500,
+                              color: libraryState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurface,
+                            ),
+                          ),
+                          trailing: Text('(${libraryState.allGames.length})'),
+                          onTap: () {
                             notifier.setStorefrontFilter(null);
                             Navigator.pop(ctx);
                           },
-                          child: const Text('Reset'),
                         ),
-                    ],
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(
-                    Icons.devices_other_rounded,
-                    color: libraryState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                  ),
-                  title: Text(
-                    'All Platforms',
-                    style: TextStyle(
-                      fontWeight: libraryState.storefrontFilter == null ? FontWeight.w800 : FontWeight.w500,
-                      color: libraryState.storefrontFilter == null ? colorScheme.primary : colorScheme.onSurface,
+                        ...Storefront.values.map((s) {
+                          final isSelected = libraryState.storefrontFilter == s;
+                          final count = libraryState.allGames.where((g) => g.storefront == s).length;
+                          return ListTile(
+                            leading: Icon(
+                              s.fallbackIcon,
+                              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                            ),
+                            title: Text(
+                              s.label,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                              ),
+                            ),
+                            trailing: Text('($count)'),
+                            onTap: () {
+                              notifier.setStorefrontFilter(isSelected ? null : s);
+                              Navigator.pop(ctx);
+                            },
+                          );
+                        }),
+                      ],
                     ),
                   ),
-                  trailing: Text('(${libraryState.allGames.length})'),
-                  onTap: () {
-                    notifier.setStorefrontFilter(null);
-                    Navigator.pop(ctx);
-                  },
-                ),
-                ...Storefront.values.map((s) {
-                  final isSelected = libraryState.storefrontFilter == s;
-                  final count = libraryState.allGames.where((g) => g.storefront == s).length;
-                  return ListTile(
-                    leading: Icon(
-                      s.fallbackIcon,
-                      color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                    ),
-                    title: Text(
-                      s.label,
-                      style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                        color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-                      ),
-                    ),
-                    trailing: Text('($count)'),
-                    onTap: () {
-                      notifier.setStorefrontFilter(isSelected ? null : s);
-                      Navigator.pop(ctx);
-                    },
-                  );
-                }),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -199,28 +212,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
           preferredSize: const Size.fromHeight(106),
           child: Column(
             children: [
-              // SearchBar with leading platform filter button
+              // SearchBar with trailing platform filter button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: SearchBar(
                   controller: _searchController,
                   hintText: 'Search title, genres, notes...',
-                  leading: IconButton(
-                    icon: Badge(
-                      isLabelVisible: libraryState.storefrontFilter != null,
-                      backgroundColor: colorScheme.primary,
-                      smallSize: 8,
-                      child: Icon(
-                        libraryState.storefrontFilter != null
-                            ? libraryState.storefrontFilter!.fallbackIcon
-                            : Icons.filter_list_rounded,
-                        color: libraryState.storefrontFilter != null
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    tooltip: 'Filter by Platform',
-                    onPressed: () => _showPlatformFilterSheet(context, libraryState, notifier),
+                  leading: const Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Icon(Icons.search, size: 20),
                   ),
                   trailing: [
                     if (_searchController.text.isNotEmpty)
@@ -232,6 +232,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                           setState(() {});
                         },
                       ),
+                    IconButton(
+                      icon: Badge(
+                        isLabelVisible: libraryState.storefrontFilter != null,
+                        backgroundColor: colorScheme.primary,
+                        smallSize: 8,
+                        child: Icon(
+                          libraryState.storefrontFilter != null
+                              ? libraryState.storefrontFilter!.fallbackIcon
+                              : Icons.filter_list_rounded,
+                          color: libraryState.storefrontFilter != null
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      tooltip: 'Filter by Platform',
+                      onPressed: () => _showPlatformFilterSheet(context, libraryState, notifier),
+                    ),
                   ],
                   elevation: const WidgetStatePropertyAll(0),
                   backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerHigh),

@@ -587,7 +587,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Size: ${IGDBCacheService.formatBytes(_cacheSizeBytes)} ($_cacheSizeBytes bytes)',
+                      'Size: ${IGDBCacheService.formatBytes(_cacheSizeBytes)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w600,

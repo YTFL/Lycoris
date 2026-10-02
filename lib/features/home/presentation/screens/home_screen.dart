@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../analytics/presentation/screens/analytics_dashboard.dart';
+import '../../../rankings/presentation/screens/rankings_screen.dart';
 import '../../../sync/presentation/screens/settings_screen.dart';
 import '../../../tracker/presentation/screens/library_screen.dart';
-import '../../../tracker/presentation/widgets/intake_modal.dart';
+import '../../../search/presentation/screens/game_search_screen.dart';
 
 import '../controllers/home_nav_provider.dart';
 
@@ -17,6 +18,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final List<Widget> _destinations = const [
     LibraryScreen(),
+    RankingsScreen(),
     AnalyticsDashboard(),
     SettingsScreen(),
   ];
@@ -47,6 +49,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             label: 'Library',
           ),
           NavigationDestination(
+            icon: const Icon(Icons.leaderboard_outlined),
+            selectedIcon: Icon(Icons.leaderboard, color: colorScheme.onPrimaryContainer),
+            label: 'Rankings',
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights, color: colorScheme.onPrimaryContainer),
             label: 'Analytics',
@@ -61,9 +68,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => const IntakeModal(),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const GameSearchScreen()),
                 );
               },
               icon: const Icon(Icons.add),

@@ -9,6 +9,7 @@ class HiveRegistrar {
   static const String gamesBoxName = 'games_vault';
   static const String settingsBoxName = 'app_settings';
   static const String metadataCacheBoxName = 'igdb_cache';
+  static const String rankingsBoxName = 'game_rankings';
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -31,9 +32,11 @@ class HiveRegistrar {
     await Hive.openBox<GameEntry>(gamesBoxName);
     await Hive.openBox<dynamic>(settingsBoxName);
     await Hive.openBox<dynamic>(metadataCacheBoxName);
+    await Hive.openBox<dynamic>(rankingsBoxName);
   }
 
   static Box<GameEntry> get gamesBox => Hive.box<GameEntry>(gamesBoxName);
   static Box<dynamic> get settingsBox => Hive.box<dynamic>(settingsBoxName);
   static Box<dynamic> get metadataCacheBox => Hive.box<dynamic>(metadataCacheBoxName);
+  static Box<dynamic> get rankingsBox => Hive.box<dynamic>(rankingsBoxName);
 }

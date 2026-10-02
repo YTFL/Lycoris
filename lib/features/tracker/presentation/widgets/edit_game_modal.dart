@@ -150,7 +150,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   initialValue: _selectedStorefront,
                   decoration: InputDecoration(
                     labelText: 'Storefront / Platform',
-                    prefixIcon: Icon(_selectedStorefront.fallbackIcon, size: 20),
                     filled: true,
                     fillColor: colorScheme.surfaceContainer,
                     border: OutlineInputBorder(
@@ -162,13 +161,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   items: Storefront.values.map((s) {
                     return DropdownMenuItem(
                       value: s,
-                      child: Row(
-                        children: [
-                          Icon(s.fallbackIcon, size: 18),
-                          const SizedBox(width: 8),
-                          Text(s.label),
-                        ],
-                      ),
+                      child: Text(s.label),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -182,7 +175,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   initialValue: _selectedStatus,
                   decoration: InputDecoration(
                     labelText: 'Status',
-                    prefixIcon: Icon(_selectedStatus.icon, size: 20),
                     filled: true,
                     fillColor: colorScheme.surfaceContainer,
                     border: OutlineInputBorder(
@@ -194,13 +186,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   items: GameStatus.values.map((st) {
                     return DropdownMenuItem(
                       value: st,
-                      child: Row(
-                        children: [
-                          Icon(st.icon, size: 18),
-                          const SizedBox(width: 8),
-                          Text(st.displayName),
-                        ],
-                      ),
+                      child: Text(st.displayName),
                     );
                   }).toList(),
                   onChanged: (val) {

@@ -11,13 +11,16 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: status.color.withAlpha(40),
+        color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: status.color.withAlpha(150),
+          color: colorScheme.outlineVariant.withAlpha(80),
           width: 1,
         ),
       ),
@@ -27,14 +30,14 @@ class StatusBadge extends StatelessWidget {
           Icon(
             status.icon,
             size: 12,
-            color: status.color,
+            color: colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: 4),
           Text(
             status.displayName,
             style: TextStyle(
-              color: status.color,
-              fontSize: 10.5,
+              color: colorScheme.onSecondaryContainer,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
           ),

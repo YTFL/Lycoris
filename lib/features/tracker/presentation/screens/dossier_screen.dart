@@ -453,13 +453,13 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                                 spacing: 8,
                                 runSpacing: 6,
                                 children: [
-                                  StorefrontBadge(storefront: game.storefront),
-                                  // Interactive Status Badge
+                                  // Interactive Status Badge in front for direct accessibility
                                   InkWell(
                                     borderRadius: BorderRadius.circular(6),
                                     onTap: () => _showStatusPicker(context, game),
                                     child: StatusBadge(status: game.status),
                                   ),
+                                  StorefrontBadge(storefront: game.storefront),
                                 ],
                               ),
                             ],

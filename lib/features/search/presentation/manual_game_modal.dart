@@ -184,7 +184,6 @@ class _ManualGameModalState extends State<ManualGameModal> {
                       children: Storefront.values.map((s) {
                         final isSelected = _selectedStorefront == s;
                         return ChoiceChip(
-                          avatar: Icon(s.fallbackIcon, size: 14),
                           label: Text(s.label),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedStorefront = s),
@@ -208,7 +207,6 @@ class _ManualGameModalState extends State<ManualGameModal> {
                       children: GameStatus.values.map((st) {
                         final isSelected = _selectedStatus == st;
                         return ChoiceChip(
-                          avatar: Icon(st.icon, size: 14),
                           label: Text(st.displayName),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedStatus = st),
