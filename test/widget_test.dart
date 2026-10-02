@@ -12,7 +12,7 @@ import 'package:lycoris/features/tracker/presentation/widgets/status_badge.dart'
 import 'package:lycoris/features/tracker/presentation/widgets/storefront_badge.dart';
 
 void main() {
-  testWidgets('RoiBadge renders label and secondary text', (WidgetTester tester) async {
+  testWidgets('RoiBadge renders label', (WidgetTester tester) async {
     const metric = ValueMetric(
       label: 'USD 0.75/hr',
       secondaryText: 'Incredible ROI',
@@ -28,7 +28,6 @@ void main() {
     );
 
     expect(find.text('USD 0.75/hr'), findsOneWidget);
-    expect(find.text('Incredible ROI'), findsOneWidget);
   });
 
   testWidgets('StorefrontBadge renders label and icon', (WidgetTester tester) async {

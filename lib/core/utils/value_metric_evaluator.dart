@@ -75,78 +75,46 @@ class ValueMetricEvaluator {
   }) {
     final hours = totalMinutes / 60.0;
 
-    // 1. Zero or negative cost (Free / Gifted / Claimed Games)
-    if (totalSpent <= 0.0) {
-      if (totalMinutes <= 0) {
-        return const ValueMetric(
-          label: 'Free • Unplayed',
-          secondaryText: 'Zero spend recorded',
-          tier: ValueTier.unplayed,
-          costPerHour: 0.0,
-        );
-      } else if (hours < 3.0) {
+    // 1. Unplayed games
+    if (totalMinutes <= 0) {
+      if (totalSpent <= 0.0) {
         return ValueMetric(
-          label: '${hours.toStringAsFixed(1)}h • Tried',
-          secondaryText: 'Early impressions',
-          tier: ValueTier.fairValue,
-          costPerHour: 0.0,
-        );
-      } else if (hours < 10.0) {
-        return ValueMetric(
-          label: '${hours.toStringAsFixed(1)}h • Good Return',
-          secondaryText: 'Solid engagement',
-          tier: ValueTier.greatValue,
-          costPerHour: 0.0,
-        );
-      } else if (hours < 30.0) {
-        return ValueMetric(
-          label: '${hours.toStringAsFixed(1)}h • High Value',
-          secondaryText: 'Deep immersion',
-          tier: ValueTier.greatValue,
-          costPerHour: 0.0,
-        );
-      } else {
-        return ValueMetric(
-          label: '${hours.toStringAsFixed(1)}h • Legendary Yield',
-          secondaryText: 'Phenomenal free ROI',
-          tier: ValueTier.greatValue,
+          label: '$currency 0.00/hr',
+          secondaryText: '',
+          tier: ValueTier.free,
           costPerHour: 0.0,
         );
       }
-    }
-
-    // 2. Purchased but unplayed
-    if (totalMinutes <= 0) {
       return ValueMetric(
         label: 'Unplayed',
-        secondaryText: '$currency ${totalSpent.toStringAsFixed(2)} invested',
+        secondaryText: '',
         tier: ValueTier.unplayed,
         costPerHour: null,
       );
     }
 
-    // 3. Active playtime calculations for paid titles
-    final costPerHour = totalSpent / hours;
+    // 2. Active playtime calculations (both free and paid)
+    final costPerHour = totalSpent <= 0.0 ? 0.0 : totalSpent / hours;
     final formatted = '$currency ${costPerHour.toStringAsFixed(2)}/hr';
 
-    if (costPerHour <= 1.00) {
+    if (totalSpent <= 0.0 || costPerHour <= 1.00) {
       return ValueMetric(
         label: formatted,
-        secondaryText: 'Incredible ROI',
-        tier: ValueTier.greatValue,
+        secondaryText: '',
+        tier: totalSpent <= 0.0 ? ValueTier.free : ValueTier.greatValue,
         costPerHour: costPerHour,
       );
     } else if (costPerHour <= 3.50) {
       return ValueMetric(
         label: formatted,
-        secondaryText: 'Good return',
+        secondaryText: '',
         tier: ValueTier.fairValue,
         costPerHour: costPerHour,
       );
     } else {
       return ValueMetric(
         label: formatted,
-        secondaryText: 'High cost per hour',
+        secondaryText: '',
         tier: ValueTier.costly,
         costPerHour: costPerHour,
       );

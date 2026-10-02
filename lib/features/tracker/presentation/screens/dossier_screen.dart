@@ -525,16 +525,16 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'INVESTMENT & RETURN (ROI)',
+                'INVESTMENT & RETURN (ROI):',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.8,
                 ),
               ),
+              const SizedBox(width: 8),
               RoiBadge(metric: metric),
             ],
           ),

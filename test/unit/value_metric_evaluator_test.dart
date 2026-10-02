@@ -3,14 +3,14 @@ import 'package:lycoris/core/utils/value_metric_evaluator.dart';
 
 void main() {
   group('ValueMetricEvaluator Tests', () {
-    test('Zero spend with playtime yields engagement value yield', () {
+    test('Zero spend with playtime yields 0.00/hr rate', () {
       final metric = ValueMetricEvaluator.evaluate(
         totalSpent: 0.0,
-        totalMinutes: 120, // 2.0h -> Tried
+        totalMinutes: 120,
         currency: 'USD',
       );
-      expect(metric.tier, equals(ValueTier.fairValue));
-      expect(metric.label, equals('2.0h • Tried'));
+      expect(metric.tier, equals(ValueTier.free));
+      expect(metric.label, equals('USD 0.00/hr'));
       expect(metric.costPerHour, equals(0.0));
 
       final unplayedMetric = ValueMetricEvaluator.evaluate(
@@ -18,16 +18,16 @@ void main() {
         totalMinutes: 0,
         currency: 'USD',
       );
-      expect(unplayedMetric.tier, equals(ValueTier.unplayed));
-      expect(unplayedMetric.label, equals('Free • Unplayed'));
+      expect(unplayedMetric.tier, equals(ValueTier.free));
+      expect(unplayedMetric.label, equals('USD 0.00/hr'));
 
       final highYieldMetric = ValueMetricEvaluator.evaluate(
         totalSpent: 0.0,
-        totalMinutes: 35 * 60, // 35h -> Legendary Yield
+        totalMinutes: 35 * 60,
         currency: 'USD',
       );
-      expect(highYieldMetric.tier, equals(ValueTier.greatValue));
-      expect(highYieldMetric.label, equals('35.0h • Legendary Yield'));
+      expect(highYieldMetric.tier, equals(ValueTier.free));
+      expect(highYieldMetric.label, equals('USD 0.00/hr'));
     });
 
     test('Unplayed game yields unplayed tier', () {
@@ -50,7 +50,6 @@ void main() {
       );
       expect(metric.tier, equals(ValueTier.greatValue));
       expect(metric.label, equals('USD 0.75/hr'));
-      expect(metric.secondaryText, equals('Incredible ROI'));
     });
 
     test('Moderate hours yields fairValue tier (<= 3.50/hr)', () {
@@ -62,7 +61,6 @@ void main() {
       );
       expect(metric.tier, equals(ValueTier.fairValue));
       expect(metric.label, equals('USD 2.40/hr'));
-      expect(metric.secondaryText, equals('Good return'));
     });
 
     test('Low hours high cost yields costly tier (> 3.50/hr)', () {
@@ -74,7 +72,6 @@ void main() {
       );
       expect(metric.tier, equals(ValueTier.costly));
       expect(metric.label, equals('USD 14.00/hr'));
-      expect(metric.secondaryText, equals('High cost per hour'));
     });
   });
 }
