@@ -106,12 +106,18 @@ class _AnalyticsDashboardState extends ConsumerState<AnalyticsDashboard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Analytics',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-          ),
+        title: Row(
+          children: [
+            Icon(Icons.insights_outlined, color: colorScheme.primary),
+            const SizedBox(width: 10),
+            Text(
+              'Analytics',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
         actions: [
           // Currency Selector Button

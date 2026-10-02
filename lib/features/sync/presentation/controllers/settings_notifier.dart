@@ -14,10 +14,11 @@ final igdbCacheServiceProvider = Provider<IGDBCacheService>((ref) {
 final igdbServiceProvider = Provider<IGDBService>((ref) {
   final settingsRepo = ref.watch(settingsRepositoryProvider);
   final cacheService = ref.watch(igdbCacheServiceProvider);
+  final useDevApi = settingsRepo.useDeveloperApi;
   return IGDBService(
     workerProxyUrl: settingsRepo.workerProxyUrl,
-    twitchClientId: settingsRepo.twitchClientId,
-    twitchClientSecret: settingsRepo.getDecryptedTwitchClientSecret(),
+    twitchClientId: useDevApi ? settingsRepo.twitchClientId : null,
+    twitchClientSecret: useDevApi ? settingsRepo.getDecryptedTwitchClientSecret() : null,
     cacheService: cacheService,
   );
 });
@@ -34,6 +35,7 @@ class SettingsState {
   final String twitchClientId;
   final String twitchBearerToken;
   final bool hasTwitchClientSecret;
+  final bool useDeveloperApi;
   final String primaryCurrency;
   final DateTime? lastSyncedAt;
   final bool isSyncing;
@@ -44,6 +46,7 @@ class SettingsState {
     required this.twitchClientId,
     required this.twitchBearerToken,
     this.hasTwitchClientSecret = false,
+    this.useDeveloperApi = false,
     required this.primaryCurrency,
     this.lastSyncedAt,
     this.isSyncing = false,
@@ -55,6 +58,7 @@ class SettingsState {
     String? twitchClientId,
     String? twitchBearerToken,
     bool? hasTwitchClientSecret,
+    bool? useDeveloperApi,
     String? primaryCurrency,
     DateTime? lastSyncedAt,
     bool? isSyncing,
@@ -65,6 +69,7 @@ class SettingsState {
       twitchClientId: twitchClientId ?? this.twitchClientId,
       twitchBearerToken: twitchBearerToken ?? this.twitchBearerToken,
       hasTwitchClientSecret: hasTwitchClientSecret ?? this.hasTwitchClientSecret,
+      useDeveloperApi: useDeveloperApi ?? this.useDeveloperApi,
       primaryCurrency: primaryCurrency ?? this.primaryCurrency,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       isSyncing: isSyncing ?? this.isSyncing,
@@ -90,9 +95,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           twitchClientId: _settingsRepo.twitchClientId,
           twitchBearerToken: _settingsRepo.twitchBearerToken,
           hasTwitchClientSecret: _settingsRepo.hasTwitchClientSecret,
+          useDeveloperApi: _settingsRepo.useDeveloperApi,
           primaryCurrency: _settingsRepo.primaryCurrency,
           lastSyncedAt: _settingsRepo.lastSyncedAt,
         ));
+
+  Future<void> updateUseDeveloperApi(bool value) async {
+    await _settingsRepo.setUseDeveloperApi(value);
+    state = state.copyWith(useDeveloperApi: value);
+  }
 
   Future<void> updateWorkerProxyUrl(String url) async {
     await _settingsRepo.setWorkerProxyUrl(url);

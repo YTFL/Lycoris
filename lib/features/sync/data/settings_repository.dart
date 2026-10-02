@@ -13,6 +13,7 @@ class SettingsRepository {
   static const String keyPrimaryCurrency = 'primary_currency';
   static const String keyLastSyncedAt = 'last_synced_at';
   static const String keyShelfViewMode = 'shelf_view_mode';
+  static const String keyUseDeveloperApi = 'use_developer_api';
 
   SettingsRepository(this._box);
 
@@ -76,4 +77,7 @@ class SettingsRepository {
 
   String get shelfViewMode => _box.get(keyShelfViewMode, defaultValue: 'grid') as String;
   Future<void> setShelfViewMode(String mode) => _box.put(keyShelfViewMode, mode);
+
+  bool get useDeveloperApi => _box.get(keyUseDeveloperApi, defaultValue: false) as bool;
+  Future<void> setUseDeveloperApi(bool value) => _box.put(keyUseDeveloperApi, value);
 }

@@ -56,5 +56,15 @@ void main() {
       expect(repo.hasTwitchClientSecret, isFalse);
       expect(repo.getDecryptedTwitchClientSecret(), isNull);
     });
+
+    test('useDeveloperApi defaults to false and persists updates', () async {
+      expect(repo.useDeveloperApi, isFalse);
+
+      await repo.setUseDeveloperApi(true);
+      expect(repo.useDeveloperApi, isTrue);
+
+      await repo.setUseDeveloperApi(false);
+      expect(repo.useDeveloperApi, isFalse);
+    });
   });
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
-import '../../../home/presentation/controllers/home_nav_provider.dart';
 import '../controllers/library_notifier.dart';
 import '../controllers/library_state.dart';
 import '../widgets/game_cover_card.dart';
@@ -193,20 +192,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> with SingleTicker
                 ),
               );
             }).toList(),
-          ),
-
-          // 3. Quick Header Navigation to Analytics
-          IconButton(
-            tooltip: 'Analytics',
-            icon: const Icon(Icons.insights_outlined),
-            onPressed: () => ref.read(homeNavIndexProvider.notifier).state = 1,
-          ),
-
-          // 4. Quick Header Navigation to Settings
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => ref.read(homeNavIndexProvider.notifier).state = 2,
           ),
           const SizedBox(width: 4),
         ],
