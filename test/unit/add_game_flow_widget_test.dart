@@ -8,6 +8,8 @@ import 'package:lycoris/features/search/presentation/widgets/game_metadata_previ
 import 'package:lycoris/features/sync/presentation/controllers/settings_notifier.dart';
 import 'package:lycoris/features/tracker/data/game_repository.dart';
 import 'package:lycoris/features/tracker/domain/models/game_entry.dart';
+import 'package:lycoris/features/tracker/domain/models/game_status.dart';
+import 'package:lycoris/features/tracker/domain/models/storefront.dart';
 import 'package:lycoris/features/tracker/presentation/controllers/library_notifier.dart';
 import 'package:lycoris/features/tracker/presentation/controllers/library_state.dart';
 
@@ -148,24 +150,65 @@ void main() {
     expect(find.text('Elden Ring: Shadow of the Erdtree'), findsOneWidget);
     expect(find.text('Released 2024'), findsOneWidget);
 
-    // Storefront chips should show labels
-    expect(find.text('Steam'), findsOneWidget);
-    expect(find.text('PlayStation'), findsOneWidget);
-    expect(find.text('Nintendo Switch'), findsOneWidget);
+    // Dropdowns should show prompt hints initially
+    expect(find.text('Select Storefront / Platform'), findsOneWidget);
+    expect(find.text('Select Play Status'), findsOneWidget);
 
-    // Status chips should show labels
-    expect(find.text('Backlog'), findsOneWidget);
-    expect(find.text('Playing'), findsOneWidget);
-    expect(find.text('Completed'), findsOneWidget);
+    // Select storefront
+    await tester.tap(find.byType(DropdownButton<Storefront>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Steam').last);
+    await tester.pumpAndSettle();
 
-    // Scroll down to reveal and tap Add to Library button
+    // Select play status
+    await tester.tap(find.byType(DropdownButton<GameStatus>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Playing').last);
+    await tester.pumpAndSettle();
+
+    // Now scroll down and tap Add to Library
     await tester.ensureVisible(find.text('Add to Library'));
     await tester.tap(find.text('Add to Library'));
     await tester.pump();
 
-    // Verify game was saved into repo
+    // Verify game was saved into repo with selected values
     expect(fakeRepo.games.length, equals(1));
     expect(fakeRepo.games.first.title, equals('Elden Ring: Shadow of the Erdtree'));
+    expect(fakeRepo.games.first.storefront, equals(Storefront.steam));
+    expect(fakeRepo.games.first.status, equals(GameStatus.playing));
+  });
+
+  testWidgets('GameIntakeScreen validates required storefront and status', (WidgetTester tester) async {
+    final testGame = IGDBSearchResult(
+      id: 5678,
+      title: 'Elden Ring: Shadow of the Erdtree',
+      genres: ['Action RPG'],
+      releaseDate: DateTime(2024, 6, 21),
+    );
+
+    final fakeRepo = FakeGameRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          gameRepositoryProvider.overrideWithValue(fakeRepo),
+          libraryNotifierProvider.overrideWith((ref) => FakeLibraryNotifier(fakeRepo)),
+          settingsNotifierProvider.overrideWith((ref) => FakeSettingsNotifier()),
+        ],
+        child: MaterialApp(
+          home: GameIntakeScreen(game: testGame),
+        ),
+      ),
+    );
+
+    // Scroll down and tap Add to Library without selecting anything
+    await tester.ensureVisible(find.text('Add to Library'));
+    await tester.tap(find.text('Add to Library'));
+    await tester.pump();
+
+    // Verify validation prevented saving
+    expect(fakeRepo.games.length, equals(0));
+    expect(find.text('Please select a Storefront / Platform to continue'), findsOneWidget);
   });
 
   testWidgets('GameSearchScreen renders search bar and manual button', (WidgetTester tester) async {

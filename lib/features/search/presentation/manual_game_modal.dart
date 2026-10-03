@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/utils/currency_helper.dart';
+import '../../../core/utils/text_field_helper.dart';
 import '../../../core/utils/time_normalizer.dart';
 import '../../tracker/domain/models/game_entry.dart';
 import '../../tracker/domain/models/game_status.dart';
@@ -31,8 +32,8 @@ class _ManualGameModalState extends State<ManualGameModal> {
   final _hoursController = TextEditingController();
   final _minutesController = TextEditingController();
 
-  Storefront _selectedStorefront = Storefront.steam;
-  GameStatus _selectedStatus = GameStatus.backlog;
+  Storefront? _selectedStorefront;
+  GameStatus? _selectedStatus;
   late String _selectedCurrency;
   bool _isFree = false;
   double _rating = 0.0;
@@ -75,6 +76,26 @@ class _ManualGameModalState extends State<ManualGameModal> {
       return;
     }
 
+    if (_selectedStorefront == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select a Storefront / Platform'),
+          backgroundColor: colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedStatus == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select a Play Status'),
+          backgroundColor: colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     final price = _isFree ? 0.0 : (double.tryParse(_priceController.text.trim()) ?? 0.0);
     final genres = _genresController.text
         .split(',')
@@ -86,7 +107,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
     final game = GameEntry(
       id: GameEntry.generateId(
         igdbId: 0,
-        storefront: _selectedStorefront,
+        storefront: _selectedStorefront!,
         customUuid: customUuid,
       ),
       igdbId: 0,
@@ -95,8 +116,8 @@ class _ManualGameModalState extends State<ManualGameModal> {
           ? _coverUrlController.text.trim()
           : null,
       genres: genres.isNotEmpty ? genres : ['Custom / Indie'],
-      storefront: _selectedStorefront,
-      status: _selectedStatus,
+      storefront: _selectedStorefront!,
+      status: _selectedStatus!,
       totalMinutesPlayed: _calculatedMinutes,
       basePrice: price,
       currency: _selectedCurrency,
@@ -154,65 +175,58 @@ class _ManualGameModalState extends State<ManualGameModal> {
                   children: [
                     TextField(
                       controller: _titleController,
+                      onTap: () => TextFieldHelper.selectAll(_titleController),
                       decoration: _inputDecoration(context, 'Game Title *', hint: 'e.g. Pokemon Radical Red'),
                     ),
                     const SizedBox(height: 14),
 
                     TextField(
                       controller: _coverUrlController,
+                      onTap: () => TextFieldHelper.selectAll(_coverUrlController),
                       decoration: _inputDecoration(context, 'Cover Artwork URL (Optional)', hint: 'https://.../cover.jpg'),
                     ),
                     const SizedBox(height: 14),
 
                     TextField(
                       controller: _genresController,
+                      onTap: () => TextFieldHelper.selectAll(_genresController),
                       decoration: _inputDecoration(context, 'Genres (Comma separated)', hint: 'RPG, ROM Hack, Indie'),
                     ),
                     const SizedBox(height: 16),
 
-                    // Storefront Selector
-                    Text(
-                      'Storefront / Platform',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: Storefront.values.map((s) {
-                        final isSelected = _selectedStorefront == s;
-                        return ChoiceChip(
-                          label: Text(s.label),
-                          selected: isSelected,
-                          onSelected: (_) => setState(() => _selectedStorefront = s),
+                    // Storefront Selector Dropdown
+                    DropdownButtonFormField<Storefront>(
+                      initialValue: _selectedStorefront,
+                      decoration: _inputDecoration(context, 'Storefront / Platform'),
+                      hint: const Text('Select Storefront / Platform'),
+                      dropdownColor: colorScheme.surfaceContainerHigh,
+                      items: Storefront.values.map((s) {
+                        return DropdownMenuItem(
+                          value: s,
+                          child: Text(s.label),
                         );
                       }).toList(),
+                      onChanged: (val) {
+                        setState(() => _selectedStorefront = val);
+                      },
                     ),
                     const SizedBox(height: 16),
 
-                    // Play Status
-                    Text(
-                      'Play Status',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: GameStatus.values.map((st) {
-                        final isSelected = _selectedStatus == st;
-                        return ChoiceChip(
-                          label: Text(st.displayName),
-                          selected: isSelected,
-                          onSelected: (_) => setState(() => _selectedStatus = st),
+                    // Play Status Selector Dropdown
+                    DropdownButtonFormField<GameStatus>(
+                      initialValue: _selectedStatus,
+                      decoration: _inputDecoration(context, 'Play Status'),
+                      hint: const Text('Select Play Status'),
+                      dropdownColor: colorScheme.surfaceContainerHigh,
+                      items: GameStatus.values.map((st) {
+                        return DropdownMenuItem(
+                          value: st,
+                          child: Text(st.displayName),
                         );
                       }).toList(),
+                      onChanged: (val) {
+                        setState(() => _selectedStatus = val);
+                      },
                     ),
                     const SizedBox(height: 16),
 
@@ -241,6 +255,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                           flex: 3,
                           child: TextField(
                             controller: _priceController,
+                            onTap: () => TextFieldHelper.selectAll(_priceController),
                             enabled: !_isFree,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: _inputDecoration(context, 'Base Price'),
@@ -250,10 +265,15 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(fontSize: 13)),
+                      title: const Text('Free / Gift / Claimed', style: TextStyle(fontSize: 13)),
                       value: _isFree,
                       activeThumbColor: colorScheme.primary,
-                      onChanged: (val) => setState(() => _isFree = val),
+                      onChanged: (val) {
+                        setState(() {
+                          _isFree = val;
+                          if (val) _priceController.clear();
+                        });
+                      },
                     ),
                     const SizedBox(height: 14),
 
@@ -263,6 +283,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                         Expanded(
                           child: TextField(
                             controller: _hoursController,
+                            onTap: () => TextFieldHelper.selectAll(_hoursController),
                             keyboardType: TextInputType.number,
                             decoration: _inputDecoration(context, 'Hours', suffix: 'h'),
                             onChanged: (_) => setState(() {}),
@@ -272,6 +293,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                         Expanded(
                           child: TextField(
                             controller: _minutesController,
+                            onTap: () => TextFieldHelper.selectAll(_minutesController),
                             keyboardType: TextInputType.number,
                             decoration: _inputDecoration(context, 'Minutes', suffix: 'm'),
                             onChanged: (_) => setState(() {}),
@@ -336,6 +358,7 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     // Notes
                     TextField(
                       controller: _notesController,
+                      onTap: () => TextFieldHelper.selectAll(_notesController),
                       maxLines: 3,
                       decoration: _inputDecoration(context, 'Personal Notes / Impressions'),
                     ),

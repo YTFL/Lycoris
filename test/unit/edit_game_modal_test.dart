@@ -117,7 +117,8 @@ void main() {
     expect(find.text('Edit Game Details'), findsOneWidget);
     expect(find.text('Game Title'), findsOneWidget);
     expect(find.text('Storefront / Platform'), findsOneWidget);
-    expect(find.text('Status'), findsOneWidget);
+    // Status is removed from EditGameModal
+    expect(find.text('Status'), findsNothing);
 
     // Verify Personal Rating slider and Notes are completely removed
     expect(find.text('Personal Rating'), findsNothing);
@@ -128,10 +129,11 @@ void main() {
     await tester.tap(find.text('Save Details'));
     await tester.pumpAndSettle();
 
-    // Verify the saved game in repository retained original rating and notes
+    // Verify the saved game in repository retained original rating, notes, and status
     expect(fakeRepo.games.length, equals(1));
     final savedGame = fakeRepo.games.first;
     expect(savedGame.personalRating, equals(9.5));
     expect(savedGame.notes, equals('Superb combat and art design!'));
+    expect(savedGame.status, equals(GameStatus.playing));
   });
 }

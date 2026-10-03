@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/text_field_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 
 enum PlayTimeInputMode {
@@ -143,6 +144,7 @@ class _PlaytimeEditorDialogState extends State<PlaytimeEditorDialog> {
                     Expanded(
                       child: TextField(
                         controller: _hoursController,
+                        onTap: () => TextFieldHelper.selectAll(_hoursController),
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
                         decoration: _inputDecoration(context, 'Hours', suffix: 'h'),
@@ -153,6 +155,7 @@ class _PlaytimeEditorDialogState extends State<PlaytimeEditorDialog> {
                     Expanded(
                       child: TextField(
                         controller: _minutesController,
+                        onTap: () => TextFieldHelper.selectAll(_minutesController),
                         keyboardType: TextInputType.number,
                         style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
                         decoration: _inputDecoration(context, 'Minutes', suffix: 'm'),
@@ -164,6 +167,7 @@ class _PlaytimeEditorDialogState extends State<PlaytimeEditorDialog> {
               ] else if (_mode == PlayTimeInputMode.decimalHours) ...[
                 TextField(
                   controller: _decimalController,
+                  onTap: () => TextFieldHelper.selectAll(_decimalController),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
                   decoration: _inputDecoration(context, 'Decimal Hours (e.g. 18.5)', suffix: 'hrs'),
@@ -172,6 +176,7 @@ class _PlaytimeEditorDialogState extends State<PlaytimeEditorDialog> {
               ] else ...[
                 TextField(
                   controller: _pureMinutesController,
+                  onTap: () => TextFieldHelper.selectAll(_pureMinutesController),
                   keyboardType: TextInputType.number,
                   style: TextStyle(color: colorScheme.onSurface, fontSize: 16),
                   decoration: _inputDecoration(context, 'Total Minutes (e.g. 1125)', suffix: 'mins'),

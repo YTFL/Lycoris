@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/currency_helper.dart';
+import '../../../../core/utils/text_field_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 import '../../../sync/presentation/controllers/settings_notifier.dart';
 import '../../../tracker/domain/models/game_entry.dart';
@@ -33,18 +34,18 @@ class GameIntakeScreen extends ConsumerStatefulWidget {
 }
 
 class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
-  Storefront _selectedStorefront = Storefront.steam;
-  GameStatus _selectedStatus = GameStatus.backlog;
+  Storefront? _selectedStorefront;
+  GameStatus? _selectedStatus;
   String _selectedCurrency = '';
-  final _priceController = TextEditingController(text: '0.00');
+  final _priceController = TextEditingController();
   bool _isFree = false;
 
   // Playtime Modes
   PlayTimeInputMode _timeMode = PlayTimeInputMode.hoursAndMinutes;
-  final _hoursController = TextEditingController(text: '0');
-  final _minutesController = TextEditingController(text: '0');
-  final _decimalHoursController = TextEditingController(text: '0.0');
-  final _pureMinutesController = TextEditingController(text: '0');
+  final _hoursController = TextEditingController();
+  final _minutesController = TextEditingController();
+  final _decimalHoursController = TextEditingController();
+  final _pureMinutesController = TextEditingController();
 
   // Rating & Notes
   double _rating = 0.0;
@@ -77,19 +78,36 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
   }
 
   void _saveEntry() {
+    final messenger = ScaffoldMessenger.of(context);
+    if (_selectedStorefront == null) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please select a Storefront / Platform to continue')),
+      );
+      return;
+    }
+
+    if (_selectedStatus == null) {
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please select a Play Status to continue')),
+      );
+      return;
+    }
+
     final price = _isFree ? 0.0 : (double.tryParse(_priceController.text.trim()) ?? 0.0);
 
     final entry = GameEntry(
       id: GameEntry.generateId(
         igdbId: widget.game.id,
-        storefront: _selectedStorefront,
+        storefront: _selectedStorefront!,
       ),
       igdbId: widget.game.id,
       title: widget.game.title,
       coverUrl: widget.game.coverBigUrl,
       genres: widget.game.genres,
-      storefront: _selectedStorefront,
-      status: _selectedStatus,
+      storefront: _selectedStorefront!,
+      status: _selectedStatus!,
       totalMinutesPlayed: _calculatedMinutes,
       basePrice: price,
       currency: _selectedCurrency,
@@ -101,7 +119,6 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
 
     ref.read(libraryNotifierProvider.notifier).saveGame(entry);
 
-    final messenger = ScaffoldMessenger.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     if (Navigator.of(context).canPop()) {
@@ -246,49 +263,39 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
                 const SizedBox(height: 16),
               ],
 
-              // 2. Storefront (Text-only chips, no icons)
-              Text(
-                'Storefront / Platform',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: Storefront.values.map((s) {
-                  final isSelected = _selectedStorefront == s;
-                  return ChoiceChip(
-                    label: Text(s.label),
-                    selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedStorefront = s),
+              // 2. Storefront Dropdown (Selection required)
+              DropdownButtonFormField<Storefront>(
+                initialValue: _selectedStorefront,
+                decoration: _inputDecoration('Storefront / Platform'),
+                hint: const Text('Select Storefront / Platform'),
+                dropdownColor: colorScheme.surfaceContainerHigh,
+                items: Storefront.values.map((s) {
+                  return DropdownMenuItem(
+                    value: s,
+                    child: Text(s.label),
                   );
                 }).toList(),
+                onChanged: (val) {
+                  setState(() => _selectedStorefront = val);
+                },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // 3. Play Status (Text-only chips, no icons)
-              Text(
-                'Play Status',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: GameStatus.values.map((st) {
-                  final isSelected = _selectedStatus == st;
-                  return ChoiceChip(
-                    label: Text(st.displayName),
-                    selected: isSelected,
-                    onSelected: (_) => setState(() => _selectedStatus = st),
+              // 3. Play Status Dropdown (Selection required)
+              DropdownButtonFormField<GameStatus>(
+                initialValue: _selectedStatus,
+                decoration: _inputDecoration('Play Status'),
+                hint: const Text('Select Play Status'),
+                dropdownColor: colorScheme.surfaceContainerHigh,
+                items: GameStatus.values.map((st) {
+                  return DropdownMenuItem(
+                    value: st,
+                    child: Text(st.displayName),
                   );
                 }).toList(),
+                onChanged: (val) {
+                  setState(() => _selectedStatus = val);
+                },
               ),
               const SizedBox(height: 20),
 
@@ -325,6 +332,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
                     flex: 3,
                     child: TextField(
                       controller: _priceController,
+                      onTap: () => TextFieldHelper.selectAll(_priceController),
                       enabled: !_isFree,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: _inputDecoration('Base Price'),
@@ -335,10 +343,15 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
               const SizedBox(height: 4),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Free / Gift / Claimed (\$0.00)', style: TextStyle(fontSize: 14)),
+                title: const Text('Free / Gift / Claimed', style: TextStyle(fontSize: 14)),
                 value: _isFree,
                 activeThumbColor: colorScheme.primary,
-                onChanged: (val) => setState(() => _isFree = val),
+                onChanged: (val) {
+                  setState(() {
+                    _isFree = val;
+                    if (val) _priceController.clear();
+                  });
+                },
               ),
               const SizedBox(height: 16),
 
@@ -369,6 +382,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
                     Expanded(
                       child: TextField(
                         controller: _hoursController,
+                        onTap: () => TextFieldHelper.selectAll(_hoursController),
                         keyboardType: TextInputType.number,
                         decoration: _inputDecoration('Hours', suffix: 'h'),
                         onChanged: (_) => setState(() {}),
@@ -378,6 +392,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
                     Expanded(
                       child: TextField(
                         controller: _minutesController,
+                        onTap: () => TextFieldHelper.selectAll(_minutesController),
                         keyboardType: TextInputType.number,
                         decoration: _inputDecoration('Minutes', suffix: 'm'),
                         onChanged: (_) => setState(() {}),
@@ -388,6 +403,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
               ] else if (_timeMode == PlayTimeInputMode.decimalHours) ...[
                 TextField(
                   controller: _decimalHoursController,
+                  onTap: () => TextFieldHelper.selectAll(_decimalHoursController),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: _inputDecoration('Decimal Hours (e.g. 18.75)', suffix: 'hrs'),
                   onChanged: (_) => setState(() {}),
@@ -395,6 +411,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
               ] else ...[
                 TextField(
                   controller: _pureMinutesController,
+                  onTap: () => TextFieldHelper.selectAll(_pureMinutesController),
                   keyboardType: TextInputType.number,
                   decoration: _inputDecoration('Total Minutes (e.g. 1125)', suffix: 'mins'),
                   onChanged: (_) => setState(() {}),
@@ -482,6 +499,7 @@ class _GameIntakeScreenState extends ConsumerState<GameIntakeScreen> {
               // 7. Notes
               TextField(
                 controller: _notesController,
+                onTap: () => TextFieldHelper.selectAll(_notesController),
                 maxLines: 3,
                 decoration: _inputDecoration('Notes / Impressions log'),
               ),

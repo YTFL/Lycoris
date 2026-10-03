@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/currency_helper.dart';
+import '../../../../core/utils/text_field_helper.dart';
 import '../../domain/models/game_entry.dart';
-import '../../domain/models/game_status.dart';
 import '../../domain/models/storefront.dart';
 import '../controllers/library_notifier.dart';
 
@@ -25,7 +25,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
   late final TextEditingController _priceController;
 
   late Storefront _selectedStorefront;
-  late GameStatus _selectedStatus;
   late String _selectedCurrency;
   late bool _isFree;
 
@@ -38,7 +37,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
     );
 
     _selectedStorefront = widget.game.storefront;
-    _selectedStatus = widget.game.status;
     _selectedCurrency = widget.game.currency;
     _isFree = widget.game.basePrice <= 0;
   }
@@ -71,7 +69,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
       originalGame: widget.game,
       newTitle: title,
       newStorefront: _selectedStorefront,
-      newStatus: _selectedStatus,
+      newStatus: widget.game.status,
       newBasePrice: price,
       newCurrency: _selectedCurrency,
       newPersonalRating: widget.game.personalRating,
@@ -129,6 +127,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                 // 1. Title Input
                 TextField(
                   controller: _titleController,
+                  onTap: () => TextFieldHelper.selectAll(_titleController),
                   decoration: InputDecoration(
                     labelText: 'Game Title',
                     prefixIcon: const Icon(Icons.videogame_asset_outlined),
@@ -167,32 +166,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                 ),
                 const SizedBox(height: 14),
 
-                // 3. Play Status Dropdown
-                DropdownButtonFormField<GameStatus>(
-                  initialValue: _selectedStatus,
-                  decoration: InputDecoration(
-                    labelText: 'Status',
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainer,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
-                    ),
-                  ),
-                  dropdownColor: colorScheme.surfaceContainerHigh,
-                  items: GameStatus.values.map((st) {
-                    return DropdownMenuItem(
-                      value: st,
-                      child: Text(st.displayName),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => _selectedStatus = val);
-                  },
-                ),
-                const SizedBox(height: 14),
-
-                // 4. Free toggle & Pricing
+                // 3. Free toggle & Pricing
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Free / Gift / Claimed', style: TextStyle(fontSize: 14)),
@@ -201,7 +175,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   onChanged: (val) {
                     setState(() {
                       _isFree = val;
-                      if (val) _priceController.text = '0.00';
+                      if (val) _priceController.text = '';
                     });
                   },
                 ),
@@ -241,6 +215,7 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                       Expanded(
                         child: TextField(
                           controller: _priceController,
+                          onTap: () => TextFieldHelper.selectAll(_priceController),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
                             labelText: 'Base Price',
@@ -255,7 +230,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                     ],
                   ),
                 ],
-                const SizedBox(height: 16),
                 const SizedBox(height: 20),
 
                 // Action Buttons

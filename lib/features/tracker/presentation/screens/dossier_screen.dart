@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/utils/currency_helper.dart';
+import '../../../../core/utils/text_field_helper.dart';
 import '../../../../core/utils/time_normalizer.dart';
 import '../../../../core/utils/value_metric_evaluator.dart';
 import '../../../sync/presentation/controllers/settings_notifier.dart';
@@ -15,7 +16,6 @@ import '../widgets/edit_game_modal.dart';
 import '../widgets/help_me_rate_sheet.dart';
 import '../widgets/playtime_editor_dialog.dart';
 import '../widgets/roi_badge.dart';
-import '../widgets/status_badge.dart';
 import '../widgets/storefront_badge.dart';
 
 class DossierScreen extends ConsumerStatefulWidget {
@@ -68,6 +68,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           children: [
             TextField(
               controller: titleController,
+              onTap: () => TextFieldHelper.selectAll(titleController),
               decoration: const InputDecoration(
                 labelText: 'Title / Description',
                 hintText: 'e.g. Season Pass, Deluxe DLC, Skin',
@@ -76,6 +77,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: amountController,
+              onTap: () => TextFieldHelper.selectAll(amountController),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Amount (${game.currency})',
@@ -107,63 +109,6 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           ),
         ],
       ),
-    );
-  }
-
-
-  void _showStatusPicker(BuildContext context, GameEntry game) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    'Change Status',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                ...GameStatus.values.map((status) {
-                  final isCurrent = status == game.status;
-                  return ListTile(
-                    leading: Icon(
-                      status.icon,
-                      color: isCurrent ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                    ),
-                    title: Text(
-                      status.displayName,
-                      style: TextStyle(
-                        fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w500,
-                        color: isCurrent ? colorScheme.primary : colorScheme.onSurface,
-                      ),
-                    ),
-                    trailing: isCurrent ? Icon(Icons.check_rounded, color: colorScheme.primary) : null,
-                    onTap: () {
-                      ref.read(libraryNotifierProvider.notifier).updateStatus(game.id, status);
-                      Navigator.pop(ctx);
-                    },
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -257,6 +202,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                   const SizedBox(height: 6),
                   TextField(
                     controller: notesController,
+                    onTap: () => TextFieldHelper.selectAll(notesController),
                     maxLines: 5,
                     decoration: const InputDecoration(
                       hintText: 'Write your thoughts, completion milestones, or review...',
@@ -315,7 +261,8 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
       rates: exchangeRates,
     );
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       body: CustomScrollView(
@@ -461,12 +408,39 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  // Interactive Status Badge in front for direct accessibility
-                                  InkWell(
-                                    borderRadius: BorderRadius.circular(6),
-                                    onTap: () => _showStatusPicker(context, game),
-                                    child: StatusBadge(status: game.status),
+                                  // Direct Status Dropdown Selector
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerHigh.withAlpha(220),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: colorScheme.outlineVariant.withAlpha(80)),
+                                    ),
+                                    child: DropdownButtonHideUnderline(
+                                      child: DropdownButton<GameStatus>(
+                                        value: game.status,
+                                        isDense: true,
+                                        icon: Icon(Icons.arrow_drop_down_rounded, size: 20, color: colorScheme.onSurfaceVariant),
+                                        dropdownColor: colorScheme.surfaceContainerHigh,
+                                        style: theme.textTheme.labelMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: colorScheme.onSurface,
+                                        ),
+                                        items: GameStatus.values.map((status) {
+                                          return DropdownMenuItem<GameStatus>(
+                                            value: status,
+                                            child: Text(status.displayName),
+                                          );
+                                        }).toList(),
+                                        onChanged: (newStatus) {
+                                          if (newStatus != null && newStatus != game.status) {
+                                            ref.read(libraryNotifierProvider.notifier).updateStatus(game.id, newStatus);
+                                          }
+                                        },
+                                      ),
+                                    ),
                                   ),
                                   StorefrontBadge(storefront: game.storefront),
                                 ],

@@ -8,6 +8,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/services/exchange_rate_service.dart';
 import '../../../../core/utils/currency_helper.dart';
+import '../../../../core/utils/text_field_helper.dart';
 import '../../../search/data/igdb_cache_service.dart';
 import '../../../search/data/igdb_service.dart';
 import '../../../tracker/presentation/controllers/library_notifier.dart';
@@ -393,6 +394,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 // Proxy Configuration
                 TextField(
                   controller: _proxyUrlController,
+                  onTap: () => TextFieldHelper.selectAll(_proxyUrlController),
                   style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
                   decoration: _inputDecoration(
                     context,
@@ -489,6 +491,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 // Developer API Configuration
                 TextField(
                   controller: _clientIdController,
+                  onTap: () => TextFieldHelper.selectAll(_clientIdController),
                   style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
                   decoration: _inputDecoration(
                     context,
@@ -539,6 +542,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ] else ...[
                   TextField(
                     controller: _clientSecretController,
+                    onTap: () => TextFieldHelper.selectAll(_clientSecretController),
                     obscureText: true,
                     style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
                     decoration: _inputDecoration(
