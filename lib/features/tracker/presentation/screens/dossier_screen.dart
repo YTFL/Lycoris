@@ -12,6 +12,7 @@ import '../../domain/models/game_entry.dart';
 import '../../domain/models/game_status.dart';
 import '../controllers/library_notifier.dart';
 import '../widgets/edit_game_modal.dart';
+import '../widgets/help_me_rate_sheet.dart';
 import '../widgets/playtime_editor_dialog.dart';
 import '../widgets/roi_badge.dart';
 import '../widgets/status_badge.dart';
@@ -109,46 +110,6 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  void _showNotesEditor(BuildContext context, GameEntry game) {
-    final notesController = TextEditingController(text: game.notes);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colorScheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
-        ),
-        title: Text(
-          'Edit Notes & Impressions',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        content: TextField(
-          controller: notesController,
-          maxLines: 6,
-          decoration: const InputDecoration(
-            hintText: 'Write your thoughts, completion milestones, or review...',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              ref.read(libraryNotifierProvider.notifier).updateNotes(game.id, notesController.text.trim());
-              Navigator.pop(ctx);
-            },
-            child: const Text('Save Notes'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showStatusPicker(BuildContext context, GameEntry game) {
     final theme = Theme.of(context);
@@ -206,8 +167,9 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
     );
   }
 
-  void _showRatingDialog(BuildContext context, GameEntry game) {
+  void _showRatingAndJournalEditor(BuildContext context, GameEntry game) {
     double currentRating = game.personalRating;
+    final notesController = TextEditingController(text: game.notes);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -222,42 +184,86 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               side: BorderSide(color: colorScheme.outlineVariant.withAlpha(60)),
             ),
             title: Text(
-              'Personal Rating',
+              'Rating & Journal',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      currentRating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: colorScheme.secondary,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      currentRating > 0 ? currentRating.toStringAsFixed(1) : 'Unrated',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: colorScheme.secondary,
-                        fontWeight: FontWeight.w800,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Rating Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            currentRating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                            color: colorScheme.secondary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            currentRating > 0 ? '${currentRating.toStringAsFixed(1)} / 10.0' : 'Unrated',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colorScheme.secondary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
+                      FilledButton.tonalIcon(
+                        icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                        label: const Text('Help Me Rate'),
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        ),
+                        onPressed: () async {
+                          final score = await HelpMeRateSheet.show(
+                            context,
+                            gameTitle: game.title,
+                            coverUrl: game.coverUrl,
+                          );
+                          if (score != null && score > 0) {
+                            setDialogState(() => currentRating = score);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  Slider(
+                    value: currentRating,
+                    min: 0.0,
+                    max: 10.0,
+                    divisions: 20,
+                    activeColor: colorScheme.primary,
+                    onChanged: (val) {
+                      setDialogState(() => currentRating = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Notes & Impressions',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Slider(
-                  value: currentRating,
-                  min: 0.0,
-                  max: 10.0,
-                  divisions: 20,
-                  activeColor: colorScheme.primary,
-                  onChanged: (val) {
-                    setDialogState(() => currentRating = val);
-                  },
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                      hintText: 'Write your thoughts, completion milestones, or review...',
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -267,9 +273,10 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               FilledButton(
                 onPressed: () {
                   ref.read(libraryNotifierProvider.notifier).updateRating(game.id, currentRating);
+                  ref.read(libraryNotifierProvider.notifier).updateNotes(game.id, notesController.text.trim());
                   Navigator.pop(ctx);
                 },
-                child: const Text('Save Score'),
+                child: const Text('Save'),
               ),
             ],
           );
@@ -277,6 +284,8 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
       ),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -669,13 +678,6 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              Text(
-                '${game.totalMinutesPlayed} canonical minutes logged',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withAlpha(180),
-                  fontSize: 11,
-                ),
-              ),
             ],
           ),
           FilledButton.icon(
@@ -823,7 +825,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
               IconButton(
                 icon: const Icon(Icons.edit, size: 16),
                 color: colorScheme.primary,
-                onPressed: () => _showNotesEditor(context, game),
+                onPressed: () => _showRatingAndJournalEditor(context, game),
               ),
             ],
           ),
@@ -831,7 +833,7 @@ class _DossierScreenState extends ConsumerState<DossierScreen> {
           // Interactive Rating Row
           InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () => _showRatingDialog(context, game),
+            onTap: () => _showRatingAndJournalEditor(context, game),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(

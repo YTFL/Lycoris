@@ -5,6 +5,7 @@ import '../../../core/utils/time_normalizer.dart';
 import '../../tracker/domain/models/game_entry.dart';
 import '../../tracker/domain/models/game_status.dart';
 import '../../tracker/domain/models/storefront.dart';
+import '../../tracker/presentation/widgets/help_me_rate_sheet.dart';
 
 class ManualGameModal extends StatefulWidget {
   final String defaultCurrency;
@@ -284,17 +285,40 @@ class _ManualGameModalState extends State<ManualGameModal> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Personal Rating: ${_rating > 0 ? _rating.toStringAsFixed(1) : "Unrated"}',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.secondary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Personal Rating: ${_rating > 0 ? _rating.toStringAsFixed(1) : "Unrated"}',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: colorScheme.secondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
+                              size: 18,
+                              color: colorScheme.secondary,
+                            ),
+                          ],
                         ),
-                        Icon(
-                          _rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 18,
-                          color: colorScheme.secondary,
+                        FilledButton.tonalIcon(
+                          icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                          label: const Text('Help Me Rate'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          ),
+                          onPressed: () async {
+                            final title = _titleController.text.trim();
+                            final score = await HelpMeRateSheet.show(
+                              context,
+                              gameTitle: title.isNotEmpty ? title : 'New Game',
+                            );
+                            if (score != null && score > 0) {
+                              setState(() => _rating = score);
+                            }
+                          },
                         ),
                       ],
                     ),

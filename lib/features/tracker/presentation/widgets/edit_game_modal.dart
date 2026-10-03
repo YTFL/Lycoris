@@ -23,13 +23,11 @@ class EditGameModal extends ConsumerStatefulWidget {
 class _EditGameModalState extends ConsumerState<EditGameModal> {
   late final TextEditingController _titleController;
   late final TextEditingController _priceController;
-  late final TextEditingController _notesController;
 
   late Storefront _selectedStorefront;
   late GameStatus _selectedStatus;
   late String _selectedCurrency;
   late bool _isFree;
-  late double _rating;
 
   @override
   void initState() {
@@ -38,20 +36,17 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
     _priceController = TextEditingController(
       text: widget.game.basePrice > 0 ? widget.game.basePrice.toStringAsFixed(2) : '',
     );
-    _notesController = TextEditingController(text: widget.game.notes);
 
     _selectedStorefront = widget.game.storefront;
     _selectedStatus = widget.game.status;
     _selectedCurrency = widget.game.currency;
     _isFree = widget.game.basePrice <= 0;
-    _rating = widget.game.personalRating;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _priceController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -79,8 +74,8 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
       newStatus: _selectedStatus,
       newBasePrice: price,
       newCurrency: _selectedCurrency,
-      newPersonalRating: _rating,
-      newNotes: _notesController.text.trim(),
+      newPersonalRating: widget.game.personalRating,
+      newNotes: widget.game.notes,
     );
 
     widget.onGameUpdated?.call(newId);
@@ -114,11 +109,13 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Edit Game Details',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
+                    Expanded(
+                      child: Text(
+                        'Edit Game Details',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -214,16 +211,18 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                     children: [
                       // Currency Selector
                       SizedBox(
-                        width: 100,
+                        width: 105,
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedCurrency,
+                          isDense: true,
                           decoration: InputDecoration(
                             filled: true,
+                            isDense: true,
                             fillColor: colorScheme.surfaceContainer,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           ),
                           dropdownColor: colorScheme.surfaceContainerHigh,
                           items: CurrencyHelper.supportedCurrencies.map((c) {
@@ -257,59 +256,6 @@ class _EditGameModalState extends ConsumerState<EditGameModal> {
                   ),
                 ],
                 const SizedBox(height: 16),
-
-                // 5. Personal Rating Slider
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Personal Rating',
-                      style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          _rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 18,
-                          color: colorScheme.secondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _rating > 0 ? _rating.toStringAsFixed(1) : 'Unrated',
-                          style: TextStyle(
-                            color: colorScheme.secondary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                Slider(
-                  value: _rating,
-                  min: 0.0,
-                  max: 10.0,
-                  divisions: 20,
-                  activeColor: colorScheme.primary,
-                  inactiveColor: colorScheme.outlineVariant.withAlpha(80),
-                  onChanged: (val) => setState(() => _rating = val),
-                ),
-                const SizedBox(height: 10),
-
-                // 6. Notes
-                TextField(
-                  controller: _notesController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    labelText: 'Notes / Thoughts',
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainer,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 20),
 
                 // Action Buttons
